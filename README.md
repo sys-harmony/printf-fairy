@@ -5,6 +5,7 @@ A comprehensive tester for 42's **ft_printf** project, featuring memory leak det
 ## ✨ Features
 
 - ✅ Complete tests for all conversions (mandatory + bonus)
+- 🧹 Clean execution (automatic cleanup of temporary files)
 - 🔍 Automatic verification with **norminette**
 - 📋 Prototype validation in ft_printf.h
 - ⚙️ Makefile rules verification (NAME, all, clean, fclean, re, bonus)
@@ -70,10 +71,10 @@ chmod +x run.sh
 ╚═══════════════════════════╝
 
 📝 Checking norm...         Done
-🏷️  Checking version...     Bonus
+🔖 Checking version...     Bonus
 📋 Checking prototype...    Done
 ⚙️  Checking Makefile...    Done
-📦 Building libftprintf...  Done
+📦 Building ft_printf...    Done
 🔍 Checking externals...    Done
 🔨 Building tests...        Done
 🧪 Running tests...
@@ -255,7 +256,7 @@ This project is free to use for educational purposes.
 
 ## 💖 Credits
 
-Created with ✨ by **gcxd68**, inspired by **libft-fairy** by **sys-harmony**.
+Created with ✨ by **sys-harmony**.
 
 ---
 
