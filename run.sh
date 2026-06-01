@@ -66,9 +66,9 @@ BONUS_BASIC_RC=0
 BONUS_LEAK_RC=0
 
 echo ""
-echo -e "${PINK}╔═══════════════════════════╗${RESET}"
-echo -e "${PINK}║      PRINTF-FAIRY 🧚      ║${RESET}"
-echo -e "${PINK}╚═══════════════════════════╝${RESET}"
+echo -e "${PINK}╔══════════════════════════════╗${RESET}"
+echo -e "${PINK}║        PRINTF-FAIRY 🧚       ║${RESET}"
+echo -e "${PINK}╚══════════════════════════════╝${RESET}"
 echo
 
 echo -e -n "📝 Checking norm..."
