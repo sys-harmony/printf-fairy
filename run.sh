@@ -247,9 +247,9 @@ else
 fi
 [[ $BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$basic_log")"
 [[ $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (mandatory)\n════════════════════════════════════════\n$(cat "$leak_log")"
-[[ $BASIC_RC -ne 0 || $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo ""
 
 if [[ $BONUS_VERSION -eq 1 ]]; then
+    [[ $BASIC_RC -ne 0 || $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo ""
     echo -e -n "📦 Building bonus..."
     MAKE_OUTPUT=$(make re bonus 2>&1)
     if [ $? -ne 0 ]; then
