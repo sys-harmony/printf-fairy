@@ -39,13 +39,13 @@ print_result() {
         && $BASIC_RC -eq 0 && $LEAK_RC -eq 0 && $BONUS_BUILD_ERRORS -eq 0 \
         && $BONUS_TEST_BUILD_ERRORS -eq 0 && $BONUS_BASIC_RC -eq 0 \
         && $BONUS_LEAK_RC -eq 0 ]]; then
-        echo -e "${GREEN}╔══════════════════════════════╗${RESET}"
-        echo -e "${GREEN}║      OH MY, YOU PASSED!      ║${RESET}"
-        echo -e "${GREEN}╚══════════════════════════════╝${RESET}"
+        echo -e "${GREEN}╔════════════════════════════════════╗${RESET}"
+        echo -e "${GREEN}║         OH MY, YOU PASSED!         ║${RESET}"
+        echo -e "${GREEN}╚════════════════════════════════════╝${RESET}"
     else
-        echo -e "${RED}╔══════════════════════════════╗${RESET}"
-        echo -e "${RED}║     OH NO... YOU FAILED!     ║${RESET}"
-        echo -e "${RED}╚══════════════════════════════╝${RESET}"
+        echo -e "${RED}╔════════════════════════════════════╗${RESET}"
+        echo -e "${RED}║        OH NO... YOU FAILED!        ║${RESET}"
+        echo -e "${RED}╚════════════════════════════════════╝${RESET}"
     fi
 }
 
@@ -66,9 +66,9 @@ BONUS_BASIC_RC=0
 BONUS_LEAK_RC=0
 
 echo ""
-echo -e "${PINK}╔══════════════════════════════╗${RESET}"
-echo -e "${PINK}║        PRINTF-FAIRY 🧚       ║${RESET}"
-echo -e "${PINK}╚══════════════════════════════╝${RESET}"
+echo -e "${PINK}╔════════════════════════════════════╗${RESET}"
+echo -e "${PINK}║           PRINTF-FAIRY 🧚          ║${RESET}"
+echo -e "${PINK}╚════════════════════════════════════╝${RESET}"
 echo
 
 echo -e -n "📝 Checking norm..."
@@ -77,32 +77,32 @@ NORM_OUTPUT=$(find . -type d -name "$TESTER_NAME" -prune -o \
 
 if echo "$NORM_OUTPUT" | grep -q "Error"; then
     NORM_TEST_RES=1
-    echo -e "\t  ${RED}Failed${RESET}"
+    echo -e "\t\t${RED}Failed${RESET}"
     echo ""
     echo "$NORM_OUTPUT" | grep "Error"
     echo ""
 else
-    echo -e "\t    Done"
+    echo -e "\t\t  Done"
 fi
 
 echo -e -n "🔖 Checking version..."
 if grep -qi "bonus:" Makefile; then
     BONUS_VERSION=1
-    echo -e "\t   Bonus"
+    echo -e "\t\t Bonus"
 else
-    echo -e " ${YELLOW}Mandatory${RESET}"
+    echo -e "\t     ${YELLOW}Mandatory${RESET}"
 fi
 
 echo -e -n "📋 Checking prototype..."
 regex="int\t+ft_printf\(const char \*format, \.\.\.\)"
 if ! grep -Pq "$regex" ft_printf.h; then
     PROTO_TEST_RES=1
-    echo -e "  ${RED}Failed${RESET}"
+    echo -e "\t${RED}Failed${RESET}"
     echo ""
     echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *format, ...)"
     echo ""
 else
-    echo -e "    Done"
+    echo -e "\t  Done"
 fi
 
 echo -e -n "⚙️  Checking Makefile..."
@@ -151,9 +151,9 @@ if [ "$timestamp_after" -ne "$timestamp_before" ]; then
     MAKE_ISSUES+="Unnecessary relink detected when running make twice\n"
 fi
 if [ $MAKE_ERRORS -eq 0 ]; then
-    echo -e "     Done"
+    echo -e "\t\t  Done"
 else
-    echo -e "   ${RED}Failed${RESET}"
+    echo -e "\t\t${RED}Failed${RESET}"
     echo ""
     echo -e "$MAKE_ISSUES"
 fi
@@ -170,9 +170,9 @@ if [ ! -f "libftprintf.a" ]; then
     BUILD_ISSUES+="File 'libftprintf.a' was not produced.\n"
 fi
 if [ $BASIC_BUILD_ERRORS -eq 0 ]; then
-    echo -e "    Done"
+    echo -e "\t  Done"
 else
-    echo -e "  ${RED}Failed${RESET}"
+    echo -e "\t${RED}Failed${RESET}"
     echo ""
     echo -e "$BUILD_ISSUES"
     exit 1
@@ -197,9 +197,9 @@ for obj in *.o; do
     [[ -n "$result" ]] && EXTERN_ERRORS="$EXTERN_ERRORS$result\n"
 done
 if [[ -z "$EXTERN_ERRORS" ]]; then
-    echo -e "    Done"
+    echo -e "\t  Done"
 else
-    echo -e "  ${RED}Failed${RESET}"
+    echo -e "\t${RED}Failed${RESET}"
     echo ""
     echo -e "$EXTERN_ERRORS"
     echo ""
@@ -222,9 +222,9 @@ compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test" "$TMP_DIR/basic_
 compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test" "$TMP_DIR/leak_build.err" || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="leak_tests compilation failed:\n$(cat "$TMP_DIR/leak_build.err")\n"; }
 
 if [ $TEST_BUILD_ERRORS -eq 0 ]; then
-    echo -e "\t    Done"
+    echo -e "\t\t  Done"
 else
-    echo -e "\t  ${RED}Failed${RESET}"
+    echo -e "\t\t${RED}Failed${RESET}"
     echo -e "$BUILD_ISSUES"
     exit 1
 fi
@@ -241,25 +241,43 @@ valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
 LEAK_RC=$?
 
 if [[ $BASIC_RC -eq 0 && $LEAK_RC -eq 0 ]]; then
-    echo -e "\t    Done"
+    echo -e "\t\t  Done"
 else
-    echo -e "\t  ${RED}Failed${RESET}"
+    echo -e "\t\t${RED}Failed${RESET}"
 fi
 [[ $BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$basic_log")"
 [[ $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (mandatory)\n════════════════════════════════════════\n$(cat "$leak_log")"
 
 if [[ $BONUS_VERSION -eq 1 ]]; then
     [[ $BASIC_RC -ne 0 || $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo ""
-    echo -e -n "📦 Building bonus..."
+    echo -e -n "📦 Building bonus ft_printf..."
     MAKE_OUTPUT=$(make re bonus 2>&1)
     if [ $? -ne 0 ]; then
         BONUS_BUILD_ERRORS=1
-        echo -e "\t  ${RED}Failed${RESET}"
+        echo -e "${RED}Failed${RESET}"
         exit 1
     else
-        echo -e "\t    Done"
+        echo -e "\t  Done"
     fi
-    
+
+    echo -e -n "🔍 Checking bonus externals..."
+    BONUS_EXTERN_ERRORS=""
+    for obj in *.o; do
+        [[ -f "$obj" ]] || continue
+        result=$(check_obj "$obj")
+        [[ -n "$result" ]] && BONUS_EXTERN_ERRORS="$BONUS_EXTERN_ERRORS$result\n"
+    done
+    if [[ -z "$BONUS_EXTERN_ERRORS" ]]; then
+        echo -e "\t  Done"
+    else
+        echo -e "\t${RED}Failed${RESET}"
+        echo ""
+        echo -e "$BONUS_EXTERN_ERRORS"
+        # On ajoute les erreurs bonus à la variable globale pour faire 
+        # planter la bannière finale "OH NO YOU FAILED"
+        EXTERN_ERRORS="${EXTERN_ERRORS}${BONUS_EXTERN_ERRORS}"
+    fi
+
     echo -e -n "🔨 Building bonus tests..."
     compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test_re" "$TMP_DIR/basic_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
     compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test_re" "$TMP_DIR/leak_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
@@ -267,9 +285,9 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
     compile_test "$TESTER_NAME/leak_tests_bonus.c" "$TMP_DIR/leak_test_bonus" "$TMP_DIR/leak_bonus_build.err" || BONUS_TEST_BUILD_ERRORS=1
     
     if [ $BONUS_TEST_BUILD_ERRORS -eq 0 ]; then
-        echo -e "  Done"
+        echo -e "\t  Done"
     else
-        echo -e "${RED}Failed${RESET}"
+        echo -e "\t${RED}Failed${RESET}"
         exit 1
     fi
 
@@ -289,9 +307,9 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
         "$TMP_DIR/leak_test_bonus" >/dev/null 2>>"$bonus_leak_log"
     BONUS_LEAK_RC=$((BONUS_LEAK_RC + $?))
     if [[ $BONUS_BASIC_RC -eq 0 && $BONUS_LEAK_RC -eq 0 ]]; then
-        echo -e "   Done"
+        echo -e "\t  Done"
     else
-        echo -e " ${RED}Failed${RESET}"
+        echo -e "\t${RED}Failed${RESET}"
     fi
 
     [[ $BONUS_BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$bonus_basic_log")"
