@@ -279,7 +279,7 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
     "$TMP_DIR/basic_test_re" > "$bonus_basic_log" 2>&1
     BONUS_BASIC_RC=$?
     "$TMP_DIR/basic_test_bonus" >> "$bonus_basic_log" 2>&1
-    let BONUS_BASIC_RC+=$?
+    BONUS_BASIC_RC=$((BONUS_BASIC_RC + $?))
     valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
         --error-exitcode=42 --track-origins=yes \
         "$TMP_DIR/leak_test_re" >/dev/null 2>"$bonus_leak_log"
@@ -287,7 +287,7 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
     valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
         --error-exitcode=42 --track-origins=yes \
         "$TMP_DIR/leak_test_bonus" >/dev/null 2>>"$bonus_leak_log"
-    let BONUS_LEAK_RC+=$?
+    BONUS_LEAK_RC=$((BONUS_LEAK_RC + $?))
     if [[ $BONUS_BASIC_RC -eq 0 && $BONUS_LEAK_RC -eq 0 ]]; then
         echo -e "   Done"
     else
