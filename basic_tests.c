@@ -1,6 +1,8 @@
 #include "printf_fairy.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #ifndef VERBOSE
 # define VERBOSE 0
@@ -352,6 +354,71 @@ static void	test_mix(void) {
 		print_test_results("ft_printf mix", num_tests, tests, passed);
 }
 
+/* ************************************************************************** */
+/*                          ft_printf return value                            */
+/* ************************************************************************** */
+
+/*
+ * Sur un fd casse (ici fd 1 ferme), le vrai printf detecte l'echec de write
+ * et renvoie -1, meme quand la sortie est vide (write de 0 octet sur un fd
+ * invalide renvoie -1). Ces tests s'executent dans un process forke : on
+ * ferme stdout, donc on ne peut rien afficher dans l'enfant — abort() en cas
+ * d'echec suffit, le parent (stdout intact) affiche le bilan.
+ */
+
+static void	ret_broken_fd_empty_test(void) {
+	close(1);
+	if (ft_printf("") != -1)
+		abort();
+}
+
+static void	ret_broken_fd_empty_str_test(void) {
+	close(1);
+	if (ft_printf("%s", "") != -1)
+		abort();
+}
+
+static void	ret_broken_fd_text_test(void) {
+	close(1);
+	if (ft_printf("hello world") != -1)
+		abort();
+}
+
+static void	ret_normal_test(void) {
+	int	saved;
+	int	devnull;
+	int	ret;
+
+	saved = dup(1);
+	devnull = open("/dev/null", 1);
+	dup2(devnull, 1);
+	close(devnull);
+	ret = ft_printf("abc%d", 42);
+	dup2(saved, 1);
+	close(saved);
+	if (ret != 5)
+		abort();
+}
+
+static void	test_return_value(void) {
+	const char		*tests[] = {
+		"empty output on broken fd",
+		"empty %s on broken fd",
+		"text on broken fd",
+		"normal output count"
+	};
+	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const int		passed[] = {
+		!forked_test(ret_broken_fd_empty_test),
+		!forked_test(ret_broken_fd_empty_str_test),
+		!forked_test(ret_broken_fd_text_test),
+		!forked_test(ret_normal_test)
+	};
+
+	if (!all_tests_passed(passed, num_tests) || VERBOSE)
+		print_test_results("ft_printf return value", num_tests, tests, passed);
+}
+
 int	main(void) {
 	test_c();
 	test_s();
@@ -361,5 +428,6 @@ int	main(void) {
 	test_x_X();
 	test_percent();
 	test_mix();
+	test_return_value();
 	return (g_tests_failed ? 1 : 0);
 }

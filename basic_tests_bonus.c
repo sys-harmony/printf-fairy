@@ -78,13 +78,19 @@ static void	zero_precision_test(void) {
 		abort();
 }
 
+static void	zero_precision_zero_value_test(void) {
+	if (!compare("[%05.0d]", 0) || !compare("[%05.2d]", 0))
+		abort();
+}
+
 static void	test_flag_zero(void) {
 	const char		*tests[] = {
 		"basic",
 		"with negative",
 		"with %x",
 		"ignored if -",
-		"ignored if precision"
+		"ignored if precision",
+		"ignored if precision (zero value)"
 	};
 	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
 	const int		passed[] = {
@@ -92,7 +98,8 @@ static void	test_flag_zero(void) {
 		!forked_test(zero_d_negative_test),
 		!forked_test(zero_x_test),
 		!forked_test(zero_minus_test),
-		!forked_test(zero_precision_test)
+		!forked_test(zero_precision_test),
+		!forked_test(zero_precision_zero_value_test)
 	};
 
 	if (!all_tests_passed(passed, num_tests) || VERBOSE)
