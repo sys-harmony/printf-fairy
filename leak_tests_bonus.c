@@ -1,7 +1,5 @@
 #include "printf_fairy.h"
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 static void	redirect_stdout_to_null(void) {

@@ -1,7 +1,6 @@
 #include "printf_fairy.h"
 #include <limits.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 #ifndef VERBOSE
