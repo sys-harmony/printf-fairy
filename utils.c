@@ -22,20 +22,31 @@ int	all_tests_passed(const int *passed, const size_t num_tests) {
 #include <stdio.h>
 #include <string.h>
 
-int	compare(const char *fmt, ...) {
-	char	ft_buf[2048] = {0};
-	char	libc_buf[2048] = {0};
-	va_list	args;
-	int		ft_ret;
-	int		libc_ret;
+static int	g_saved_stdout;
+static int	g_pipefd[2];
 
-	va_start(args, fmt);
-	ft_ret = ft_vsnprintf(ft_buf, sizeof(ft_buf), fmt, args);
-	va_end(args);
-	va_start(args, fmt);
-	libc_ret = vsnprintf(libc_buf, sizeof(libc_buf), fmt, args);
-	va_end(args);
-	return (ft_ret == libc_ret) && (strcmp(ft_buf, libc_buf) == 0);
+void	capture_start(void)
+{
+	fflush(stdout);
+	g_saved_stdout = dup(STDOUT_FILENO);
+	if (pipe(g_pipefd) == -1)
+		error_exit("printf-fairy: pipe failed");
+	dup2(g_pipefd[1], STDOUT_FILENO);
+	close(g_pipefd[1]);
+}
+
+void	capture_end(char *buf)
+{
+	int	bytes;
+
+	fflush(stdout);
+	dup2(g_saved_stdout, STDOUT_FILENO);
+	close(g_saved_stdout);
+	
+	bytes = read(g_pipefd[0], buf, 2047);
+	if (bytes >= 0)
+		buf[bytes] = '\0';
+	close(g_pipefd[0]);
 }
 
 void	print_test_results(char *function_name, const size_t num_tests, const char *tests[], const int passed[]) {
