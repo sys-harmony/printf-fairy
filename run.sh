@@ -249,6 +249,7 @@ else
 fi
 [[ $BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$basic_log")"
 [[ $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (mandatory)\n════════════════════════════════════════\n$(cat "$leak_log")"
+[[ $BASIC_RC -ne 0 || $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo ""
 
 if [[ $BONUS_VERSION -eq 1 ]]; then
     echo -e -n "📦 Building bonus..."
@@ -260,9 +261,13 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
     else
         echo -e "\t    Done"
     fi
+    
     echo -e -n "🔨 Building bonus tests..."
+    compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test_re" "$TMP_DIR/basic_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
+    compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test_re" "$TMP_DIR/leak_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
     compile_test "$TESTER_NAME/basic_tests_bonus.c" "$TMP_DIR/basic_test_bonus" "$TMP_DIR/basic_bonus_build.err" || BONUS_TEST_BUILD_ERRORS=1
     compile_test "$TESTER_NAME/leak_tests_bonus.c" "$TMP_DIR/leak_test_bonus" "$TMP_DIR/leak_bonus_build.err" || BONUS_TEST_BUILD_ERRORS=1
+    
     if [ $BONUS_TEST_BUILD_ERRORS -eq 0 ]; then
         echo -e "  Done"
     else
@@ -273,21 +278,26 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
     echo -e -n "🧪 Running bonus tests..."
     bonus_basic_log="$TMP_DIR/basic_bonus.log"
     bonus_leak_log="$TMP_DIR/leak_bonus.log"
-    "$TMP_DIR/basic_test_bonus" > "$bonus_basic_log" 2>&1
+    "$TMP_DIR/basic_test_re" > "$bonus_basic_log" 2>&1
     BONUS_BASIC_RC=$?
+    "$TMP_DIR/basic_test_bonus" >> "$bonus_basic_log" 2>&1
+    let BONUS_BASIC_RC+=$?
     valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
         --error-exitcode=42 --track-origins=yes \
-        "$TMP_DIR/leak_test_bonus" >/dev/null 2>"$bonus_leak_log"
+        "$TMP_DIR/leak_test_re" >/dev/null 2>"$bonus_leak_log"
     BONUS_LEAK_RC=$?
-    
+    valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
+        --error-exitcode=42 --track-origins=yes \
+        "$TMP_DIR/leak_test_bonus" >/dev/null 2>>"$bonus_leak_log"
+    let BONUS_LEAK_RC+=$?
     if [[ $BONUS_BASIC_RC -eq 0 && $BONUS_LEAK_RC -eq 0 ]]; then
         echo -e "   Done"
     else
         echo -e " ${RED}Failed${RESET}"
     fi
+
     [[ $BONUS_BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$bonus_basic_log")"
     [[ $BONUS_LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (bonus)\n════════════════════════════════════════\n$(cat "$bonus_leak_log")"
 fi
 
 exit 0
-
