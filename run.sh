@@ -95,12 +95,11 @@ fi
 
 echo -e -n "📋 Checking prototype..."
 regex="int\t+ft_printf\(const char \*format, \.\.\.\)"
-expected="int\tft_printf(const char *format, ...)"
 if ! grep -Pq "$regex" ft_printf.h; then
     PROTO_TEST_RES=1
     echo -e "  ${RED}Failed${RESET}"
     echo ""
-    echo -e "Missing or malformed prototype(s), expected:\n$expected"
+    echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *format, ...)"
     echo ""
 else
     echo -e "    Done"
@@ -157,7 +156,6 @@ else
     echo -e "   ${RED}Failed${RESET}"
     echo ""
     echo -e "$MAKE_ISSUES"
-    echo ""
 fi
 
 echo -e -n "📦 Building ft_printf..."
