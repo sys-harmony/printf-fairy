@@ -2,7 +2,7 @@
 # define PRINTF_FAIRY_H
 
 // =============================
-// 📚 Librarie(s)
+// 📚 Libraries
 // =============================
 # include "ft_printf.h"
 # include <stdio.h>

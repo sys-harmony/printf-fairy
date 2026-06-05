@@ -4,10 +4,10 @@
 #include <fcntl.h>
 
 /*
- * ft_vdprintf alloue dynamiquement quand le format depasse PRINTF_BUFFER_SIZE.
- * On force le chemin malloc avec une grosse string, puis on relance avec un
- * format court pour couvrir le chemin stack buffer.
- * stdout est redirige vers /dev/null pour ne pas polluer la sortie.
+ * ft_vdprintf allocates dynamically when the format exceeds PRINTF_BUFFER_SIZE.
+ * We force the malloc path with a huge string, then we run again with a
+ * short format to cover the stack buffer path.
+ * stdout is redirected to /dev/null to avoid cluttering the output.
  */
 
 static void	redirect_stdout_to_null(void) {

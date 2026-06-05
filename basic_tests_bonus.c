@@ -392,6 +392,66 @@ static void	test_combinations(void) {
 		print_test_results("combinations (bonus)", num_tests, tests, passed);
 }
 
+/* ************************************************************************** */
+/*                        flags on %p / %s / huge width                       */
+/* ************************************************************************** */
+
+/*
+ * Edge cases rarely tested elsewhere: width and 0 flag on %p, 0 flag ignored on %s
+ * (0 only applies to numeric conversions), and a huge width to test padding
+ * logic without memory risks.
+ * The simple negative case (%u/%x/%X with -1, INT_MIN) is already covered by
+ * mandatory tests, which are re-run on the bonus lib; we only keep the
+ * negative + width/precision/hash combination here, specific to the bonus.
+ */
+
+static void	neg_unsigned_with_flags_test(void) {
+	if (!compare("[%15.12u]", -1) || !compare("[%#x]", -1))
+		abort();
+}
+
+static void	pointer_width_test(void) {
+	if (!compare("[%20p]", (void *)0x42)
+		|| !compare("[%-20p]", (void *)0x42))
+		abort();
+}
+
+static void	pointer_zero_pad_test(void) {
+	if (!compare("[%010p]", (void *)0x42))
+		abort();
+}
+
+static void	string_zero_flag_ignored_test(void) {
+	if (!compare("[%05s]", "hi"))
+		abort();
+}
+
+static void	huge_width_test(void) {
+	if (!compare("[%1000d]", 42) || !compare("[%-1000s]", "x"))
+		abort();
+}
+
+static void	test_misc_flags(void) {
+	const char		*tests[] = {
+		"negative unsigned + width/precision/hash",
+		"%p with width (- and right)",
+		"%p with zero pad",
+		"%s ignores flag 0",
+		"huge width padding"
+	};
+	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const int		passed[] = {
+		!forked_test(neg_unsigned_with_flags_test),
+		!forked_test(pointer_width_test),
+		!forked_test(pointer_zero_pad_test),
+		!forked_test(string_zero_flag_ignored_test),
+		!forked_test(huge_width_test)
+	};
+
+	if (!all_tests_passed(passed, num_tests) || VERBOSE)
+		print_test_results("misc flags (bonus)", num_tests, tests, passed);
+}
+
 int	main(void) {
 	test_flag_minus();
 	test_flag_zero();
@@ -401,5 +461,6 @@ int	main(void) {
 	test_width();
 	test_precision();
 	test_combinations();
+	test_misc_flags();
 	return (g_tests_failed ? 1 : 0);
 }

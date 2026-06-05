@@ -213,17 +213,24 @@ static void	u_uint_max_test(void) {
 		abort();
 }
 
+static void	u_negative_arg_test(void) {
+	if (!compare("[%u]", -1) || !compare("[%u]", INT_MIN))
+		abort();
+}
+
 static void	test_u(void) {
 	const char		*tests[] = {
 		"zero",
 		"positive",
-		"UINT_MAX"
+		"UINT_MAX",
+		"negative arg"
 	};
 	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
 	const int		passed[] = {
 		!forked_test(u_zero_test),
 		!forked_test(u_positive_test),
-		!forked_test(u_uint_max_test)
+		!forked_test(u_uint_max_test),
+		!forked_test(u_negative_arg_test)
 	};
 
 	if (!all_tests_passed(passed, num_tests) || VERBOSE)
@@ -249,6 +256,11 @@ static void	x_uint_max_test(void) {
 		abort();
 }
 
+static void	x_negative_arg_test(void) {
+	if (!compare("[%x]", -1) || !compare("[%X]", INT_MIN))
+		abort();
+}
+
 static void	x_mixed_case_test(void) {
 	if (!compare("%x %X", 0xabcdef, 0xabcdef))
 		abort();
@@ -259,6 +271,7 @@ static void	test_x_X(void) {
 		"zero",
 		"basic 255",
 		"UINT_MAX",
+		"negative arg",
 		"mixed lower/upper"
 	};
 	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
@@ -266,6 +279,7 @@ static void	test_x_X(void) {
 		!forked_test(x_zero_test),
 		!forked_test(x_basic_test),
 		!forked_test(x_uint_max_test),
+		!forked_test(x_negative_arg_test),
 		!forked_test(x_mixed_case_test)
 	};
 
@@ -358,11 +372,11 @@ static void	test_mix(void) {
 /* ************************************************************************** */
 
 /*
- * Sur un fd casse (ici fd 1 ferme), le vrai printf detecte l'echec de write
- * et renvoie -1, meme quand la sortie est vide (write de 0 octet sur un fd
- * invalide renvoie -1). Ces tests s'executent dans un process forke : on
- * ferme stdout, donc on ne peut rien afficher dans l'enfant — abort() en cas
- * d'echec suffit, le parent (stdout intact) affiche le bilan.
+ * On a broken fd (here fd 1 is closed), the real printf detects the write failure
+ * and returns -1, even when the output is empty (a 0-byte write on an invalid
+ * fd returns -1). These tests run in a forked process: stdout is closed,
+ * so we can't print anything in the child process — abort() on failure
+ * is enough, the parent (with stdout intact) prints the result.
  */
 
 static void	ret_broken_fd_empty_test(void) {

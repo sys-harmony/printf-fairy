@@ -28,7 +28,7 @@ cleanup() {
     echo -e -n "🧹 Cleaning up..."
     rm -rf "$TMP_DIR"
     make fclean > /dev/null 2>&1 || true
-    echo -e "\t    Done"
+    echo -e "\t\t  Done"
     echo ""
 }
 

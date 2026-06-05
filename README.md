@@ -104,7 +104,7 @@ On failure, details of failed tests will be displayed, along with Valgrind logs 
 - **Norminette**: Validates all .c and .h files
 - **Prototype**: Verifies `int ft_printf(const char *, ...)` in ft_printf.h
 - **Makefile**: Checks for required rules and proper compilation flags
-- **External functions**: Ensures only `malloc`, `free`, `write`, and `va_*` are used
+- **External functions**: Ensures only allowed symbols are referenced (`malloc`, `free`, `write`, plus `memset`/`memcpy` which gcc may emit from struct initialisation; `va_*` are inlined and invisible to `nm`)
 
 ### Mandatory Conversions
 
@@ -137,6 +137,10 @@ On failure, details of failed tests will be displayed, along with Valgrind logs 
 #### Mix
 - Multiple conversions in one call
 - All types in one format
+
+#### Return value (broken fd)
+- Empty output, empty `%s`, and text on a closed stdout: `ft_printf` must return `-1` like glibc (a zero-length write on an invalid fd still fails)
+- Normal output returns the exact character count
 
 ### Bonus Flags
 
@@ -178,6 +182,15 @@ On failure, details of failed tests will be displayed, along with Valgrind logs 
 - Repeated flags
 - Mixed format strings
 
+#### Negative as unsigned
+- `-1` and `INT_MIN` passed to `%u`, `%x`, `%X` (must be reinterpreted as unsigned)
+- With width, precision and `#`
+
+#### Misc flags
+- `%p` with width (`%20p`, `%-20p`) and zero-padding (`%010p`)
+- Flag `0` correctly ignored for `%s`
+- Huge width padding (1000+ characters)
+
 ### Memory Leak Tests
 
 Dedicated leak tests using **Valgrind**:
@@ -211,11 +224,15 @@ printf-fairy/
 
 ### Direct comparison with libc printf
 
-Each test calls `ft_vsnprintf` and `vsnprintf` with the same arguments and compares both the output buffer and the return value. This guarantees behavioral equivalence with the reference implementation.
+Each test runs your real `ft_printf` and the libc `printf` on the same format, capturing both outputs through a pipe (`capture_start`/`capture_end`) and comparing the captured strings **and** the return values. This validates the full call chain (`ft_printf` -> `ft_vprintf` -> `ft_vdprintf` -> `ft_vsnprintf`) exactly as it runs in production, not just the buffer formatter.
 
 ### Forked tests
 
 Crash-prone tests (`%s` with NULL, edge cases) run in separate processes to prevent tester crashes, allowing comprehensive validation without interruption.
+
+### Mandatory tests re-run on the bonus build
+
+Because the bonus `ft_vsnprintf_bonus.c` re-implements **every** conversion (not just the flags), the mandatory conversion tests and leak tests are compiled and run a second time against the bonus library. A bug that only exists in the bonus conversion code (e.g. `%c` with `'\0'`, a padding overflow) is caught while the mandatory build stays green.
 
 ### Stack and heap path coverage
 
@@ -232,7 +249,7 @@ If a test fails:
 1. **Verbose mode**: Run `./run.sh -v` to see all test details
 2. **Valgrind logs**: Complete output displayed for memory issues
 3. **Norminette**: Specific errors shown with file and line
-4. **Build errors**: Stored in `.build_err` if compilation fails
+4. **Build errors**: Captured per target under the run's temporary directory and printed on failure
 
 ## ⚠️ Limitations
 
