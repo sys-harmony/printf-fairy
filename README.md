@@ -32,7 +32,7 @@ Before using printf-fairy, make sure you have installed:
 1. Clone the repository inside your ft_printf directory:
 
 ```bash
-git clone https://github.com/gcxd68/printf-fairy.git
+git clone https://github.com/sys-harmony/printf-fairy.git
 ```
 
 2. Navigate to the tester folder:
