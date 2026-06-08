@@ -459,6 +459,158 @@ static void	test_misc_flags(void) {
 		print_test_results("misc flags (bonus)", num_tests, tests, passed);
 }
 
+/* ************************************************************************** */
+/*                    exhaustive cartesian product (bonus)                    */
+/* ************************************************************************** */
+
+/*
+ * Inspired by francinette's Fsoares: instead of isolated cases, sweep the full
+ * flag x width x precision x value space for each conversion and compare every
+ * combination against glibc. The per-conversion flag sets avoid undefined
+ * behaviour (e.g. + / space are never applied to unsigned conversions, # only
+ * to x/X), so a mismatch always means a real bug. The whole sweep runs inside
+ * a single forked process; abort() fires on the first divergence.
+ */
+
+static void	sweep(const char *convs[], const char *flags[], size_t nflags,
+				const int vals[], size_t nvals)
+{
+	const char	*widths[] = {"", "1", "5", "10"};
+	const char	*precs[] = {"", ".", ".0", ".1", ".2", ".5", ".10"};
+	char		fmt[32];
+	size_t		c;
+	size_t		f;
+	size_t		w;
+	size_t		p;
+	size_t		v;
+
+	for (c = 0; convs[c]; c++)
+		for (f = 0; f < nflags; f++)
+			for (w = 0; w < 4; w++)
+				for (p = 0; p < 7; p++)
+					for (v = 0; v < nvals; v++)
+					{
+						snprintf(fmt, sizeof(fmt), "[%%%s%s%s%s]",
+							flags[f], widths[w], precs[p], convs[c]);
+						if (!compare(fmt, vals[v]))
+							abort();
+					}
+}
+
+static void	exhaustive_signed_test(void)
+{
+	const char	*convs[] = {"d", "i", NULL};
+	const char	*flags[] = {"", "-", "0", "+", " ", "-0", "+0", " 0", "-+"};
+	const int	vals[] = {0, 1, -1, 42, -42, 2147483647, -2147483648, 7};
+
+	sweep(convs, flags, 9, vals, 8);
+}
+
+static void	exhaustive_unsigned_test(void)
+{
+	const char	*convs[] = {"u", NULL};
+	const char	*flags[] = {"", "-", "0", "-0"};
+	const int	vals[] = {0, 1, 42, -1, -2147483648, 4242};
+
+	sweep(convs, flags, 4, vals, 6);
+}
+
+static void	exhaustive_hex_test(void)
+{
+	const char	*convs[] = {"x", "X", NULL};
+	const char	*flags[] = {"", "-", "0", "#", "-0", "0#", "-#"};
+	const int	vals[] = {0, 1, 255, -1, -2147483648, 0xabcdef};
+
+	sweep(convs, flags, 7, vals, 6);
+}
+
+static void	exhaustive_str_test(void)
+{
+	const char	*flags[] = {"", "-"};
+	const char	*widths[] = {"", "1", "5", "10"};
+	const char	*precs[] = {"", ".", ".0", ".3", ".10"};
+	const char	*vals[] = {"", "a", "hello", "abcdefghijklmnop"};
+	char		fmt[32];
+	size_t		f;
+	size_t		w;
+	size_t		p;
+	size_t		v;
+
+	for (f = 0; f < 2; f++)
+		for (w = 0; w < 4; w++)
+			for (p = 0; p < 5; p++)
+				for (v = 0; v < 4; v++)
+				{
+					snprintf(fmt, sizeof(fmt), "[%%%s%s%ss]",
+						flags[f], widths[w], precs[p]);
+					if (!compare(fmt, vals[v]))
+						abort();
+				}
+}
+
+static void	test_exhaustive(void)
+{
+	const char		*tests[] = {
+		"signed d/i sweep",
+		"unsigned u sweep",
+		"hex x/X sweep",
+		"string s sweep"
+	};
+	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const int		passed[] = {
+		!forked_test(exhaustive_signed_test),
+		!forked_test(exhaustive_unsigned_test),
+		!forked_test(exhaustive_hex_test),
+		!forked_test(exhaustive_str_test)
+	};
+
+	if (!all_tests_passed(passed, num_tests) || VERBOSE)
+		print_test_results("exhaustive sweep (bonus)", num_tests, tests, passed);
+}
+
+/* ************************************************************************** */
+/*                          extra isolated edge cases                         */
+/* ************************************************************************** */
+
+static void	hash_precision_test(void)
+{
+	if (!compare("[%#.5x]", 255) || !compare("[%#.0x]", 0)
+		|| !compare("[%#.5X]", 255))
+		abort();
+}
+
+static void	huge_precision_test(void)
+{
+	if (!compare("[%.40d]", 7) || !compare("[%.40u]", 7))
+		abort();
+}
+
+static void	pointer_extreme_test(void)
+{
+	if (!compare("[%p]", (void *)-1)
+		|| !compare("[%p]", (void *)0x1)
+		|| !compare("[%-20p]", (void *)0xdeadbeef))
+		abort();
+}
+
+static void	test_extra_edges(void)
+{
+	const char		*tests[] = {
+		"# with precision (x/X)",
+		"huge precision (40)",
+		"pointer extremes"
+	};
+	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const int		passed[] = {
+		!forked_test(hash_precision_test),
+		!forked_test(huge_precision_test),
+		!forked_test(pointer_extreme_test)
+	};
+
+	if (!all_tests_passed(passed, num_tests) || VERBOSE)
+		print_test_results("extra edges (bonus)", num_tests, tests, passed);
+}
+
 int	main(void) {
 	test_flag_minus();
 	test_flag_zero();
@@ -469,5 +621,7 @@ int	main(void) {
 	test_precision();
 	test_combinations();
 	test_misc_flags();
+	test_extra_edges();
+	test_exhaustive();
 	return (g_tests_failed ? 1 : 0);
 }
