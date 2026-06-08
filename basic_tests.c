@@ -12,22 +12,22 @@
 /* ************************************************************************** */
 
 static void	c_basic_test(void) {
-	if (!compare("[%c]", 'A'))
+	if (!COMPARE("[%c]", 'A'))
 		abort();
 }
 
 static void	c_null_byte_test(void) {
-	if (!compare("[%c]", '\0'))
+	if (!COMPARE("[%c]", '\0'))
 		abort();
 }
 
 static void	c_low_ascii_test(void) {
-	if (!compare("[%c]", 1) || !compare("[%c]", 31))
+	if (!COMPARE("[%c]", 1) || !COMPARE("[%c]", 31))
 		abort();
 }
 
 static void	c_high_ascii_test(void) {
-	if (!compare("[%c]", 127))
+	if (!COMPARE("[%c]", 127))
 		abort();
 }
 
@@ -38,7 +38,7 @@ static void	test_c(void) {
 		"low ASCII",
 		"high ASCII"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(c_basic_test),
 		!forked_test(c_null_byte_test),
@@ -55,22 +55,22 @@ static void	test_c(void) {
 /* ************************************************************************** */
 
 static void	s_basic_test(void) {
-	if (!compare("[%s]", "hello"))
+	if (!COMPARE("[%s]", "hello"))
 		abort();
 }
 
 static void	s_empty_test(void) {
-	if (!compare("[%s]", ""))
+	if (!COMPARE("[%s]", ""))
 		abort();
 }
 
 static void	s_null_test(void) {
-	if (!compare("[%s]", (char *)NULL))
+	if (!COMPARE("[%s]", (char *)NULL))
 		abort();
 }
 
 static void	s_long_test(void) {
-	if (!compare("[%s]", "abcdefghijklmnopqrstuvwxyz0123456789"))
+	if (!COMPARE("[%s]", "abcdefghijklmnopqrstuvwxyz0123456789"))
 		abort();
 }
 
@@ -81,7 +81,7 @@ static void	test_s(void) {
 		"NULL",
 		"long string"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(s_basic_test),
 		!forked_test(s_empty_test),
@@ -98,23 +98,23 @@ static void	test_s(void) {
 /* ************************************************************************** */
 
 static void	p_null_test(void) {
-	if (!compare("[%p]", (void *)NULL))
+	if (!COMPARE("[%p]", (void *)NULL))
 		abort();
 }
 
 static void	p_small_test(void) {
-	if (!compare("[%p]", (void *)0x42))
+	if (!COMPARE("[%p]", (void *)0x42))
 		abort();
 }
 
 static void	p_large_test(void) {
-	if (!compare("[%p]", (void *)0xdeadbeef))
+	if (!COMPARE("[%p]", (void *)0xdeadbeef))
 		abort();
 }
 
 static void	p_stack_test(void) {
 	int	x = 0;
-	if (!compare("[%p]", (void *)&x))
+	if (!COMPARE("[%p]", (void *)&x))
 		abort();
 }
 
@@ -125,7 +125,7 @@ static void	test_p(void) {
 		"large address",
 		"stack address"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(p_null_test),
 		!forked_test(p_small_test),
@@ -142,32 +142,32 @@ static void	test_p(void) {
 /* ************************************************************************** */
 
 static void	d_zero_test(void) {
-	if (!compare("[%d]", 0))
+	if (!COMPARE("[%d]", 0))
 		abort();
 }
 
 static void	d_positive_test(void) {
-	if (!compare("[%d]", 42))
+	if (!COMPARE("[%d]", 42))
 		abort();
 }
 
 static void	d_negative_test(void) {
-	if (!compare("[%d]", -42))
+	if (!COMPARE("[%d]", -42))
 		abort();
 }
 
 static void	d_int_max_test(void) {
-	if (!compare("[%d]", INT_MAX))
+	if (!COMPARE("[%d]", INT_MAX))
 		abort();
 }
 
 static void	d_int_min_test(void) {
-	if (!compare("[%d]", INT_MIN))
+	if (!COMPARE("[%d]", INT_MIN))
 		abort();
 }
 
 static void	i_basic_test(void) {
-	if (!compare("[%i]", -42) || !compare("[%i]", 0))
+	if (!COMPARE("[%i]", -42) || !COMPARE("[%i]", 0))
 		abort();
 }
 
@@ -180,7 +180,7 @@ static void	test_d_i(void) {
 		"d INT_MIN",
 		"i basic"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(d_zero_test),
 		!forked_test(d_positive_test),
@@ -199,22 +199,22 @@ static void	test_d_i(void) {
 /* ************************************************************************** */
 
 static void	u_zero_test(void) {
-	if (!compare("[%u]", 0u))
+	if (!COMPARE("[%u]", 0u))
 		abort();
 }
 
 static void	u_positive_test(void) {
-	if (!compare("[%u]", 42u))
+	if (!COMPARE("[%u]", 42u))
 		abort();
 }
 
 static void	u_uint_max_test(void) {
-	if (!compare("[%u]", UINT_MAX))
+	if (!COMPARE("[%u]", UINT_MAX))
 		abort();
 }
 
 static void	u_negative_arg_test(void) {
-	if (!compare("[%u]", -1) || !compare("[%u]", INT_MIN))
+	if (!COMPARE("[%u]", -1) || !COMPARE("[%u]", INT_MIN))
 		abort();
 }
 
@@ -225,7 +225,7 @@ static void	test_u(void) {
 		"UINT_MAX",
 		"negative arg"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(u_zero_test),
 		!forked_test(u_positive_test),
@@ -242,27 +242,27 @@ static void	test_u(void) {
 /* ************************************************************************** */
 
 static void	x_zero_test(void) {
-	if (!compare("[%x]", 0) || !compare("[%X]", 0))
+	if (!COMPARE("[%x]", 0) || !COMPARE("[%X]", 0))
 		abort();
 }
 
 static void	x_basic_test(void) {
-	if (!compare("[%x]", 255) || !compare("[%X]", 255))
+	if (!COMPARE("[%x]", 255) || !COMPARE("[%X]", 255))
 		abort();
 }
 
 static void	x_uint_max_test(void) {
-	if (!compare("[%x]", UINT_MAX) || !compare("[%X]", UINT_MAX))
+	if (!COMPARE("[%x]", UINT_MAX) || !COMPARE("[%X]", UINT_MAX))
 		abort();
 }
 
 static void	x_negative_arg_test(void) {
-	if (!compare("[%x]", -1) || !compare("[%X]", INT_MIN))
+	if (!COMPARE("[%x]", -1) || !COMPARE("[%X]", INT_MIN))
 		abort();
 }
 
 static void	x_mixed_case_test(void) {
-	if (!compare("%x %X", 0xabcdef, 0xabcdef))
+	if (!COMPARE("%x %X", 0xabcdef, 0xabcdef))
 		abort();
 }
 
@@ -274,7 +274,7 @@ static void	test_x_X(void) {
 		"negative arg",
 		"mixed lower/upper"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(x_zero_test),
 		!forked_test(x_basic_test),
@@ -292,17 +292,17 @@ static void	test_x_X(void) {
 /* ************************************************************************** */
 
 static void	percent_basic_test(void) {
-	if (!compare("[%%]"))
+	if (!COMPARE("[%%]"))
 		abort();
 }
 
 static void	percent_mixed_test(void) {
-	if (!compare("100%% done"))
+	if (!COMPARE("100%% done"))
 		abort();
 }
 
 static void	percent_consecutive_test(void) {
-	if (!compare("%%%%"))
+	if (!COMPARE("%%%%"))
 		abort();
 }
 
@@ -312,7 +312,7 @@ static void	test_percent(void) {
 		"with text",
 		"consecutive"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(percent_basic_test),
 		!forked_test(percent_mixed_test),
@@ -328,23 +328,23 @@ static void	test_percent(void) {
 /* ************************************************************************** */
 
 static void	mix_simple_test(void) {
-	if (!compare("%s = %d", "answer", 42))
+	if (!COMPARE("%s = %d", "answer", 42))
 		abort();
 }
 
 static void	mix_all_types_test(void) {
-	if (!compare("c=%c s=%s d=%d x=%x p=%p",
+	if (!COMPARE("c=%c s=%s d=%d x=%x p=%p",
 			'X', "hi", -1, 0xff, (void *)0x42))
 		abort();
 }
 
 static void	mix_no_format_test(void) {
-	if (!compare("just plain text"))
+	if (!COMPARE("just plain text"))
 		abort();
 }
 
 static void	mix_only_newlines_test(void) {
-	if (!compare("\n\n\n"))
+	if (!COMPARE("\n\n\n"))
 		abort();
 }
 
@@ -355,7 +355,7 @@ static void	test_mix(void) {
 		"no format",
 		"only newlines"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(mix_simple_test),
 		!forked_test(mix_all_types_test),
@@ -420,7 +420,7 @@ static void	test_return_value(void) {
 		"text on broken fd",
 		"normal output count"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(ret_broken_fd_empty_test),
 		!forked_test(ret_broken_fd_empty_str_test),

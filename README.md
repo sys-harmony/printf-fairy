@@ -191,6 +191,14 @@ On failure, details of failed tests will be displayed, along with Valgrind logs 
 - Flag `0` correctly ignored for `%s`
 - Huge width padding (1000+ characters)
 
+#### Exhaustive Cartesian Sweeps
+- Massive combinations of format strings testing flags, widths, and precisions against various values for signed, unsigned, hexadecimal, and string conversions.
+
+#### Isolated Edge Cases
+- Huge precision limits (up to `.40`)
+- Edge cases for `#` with precision 0 and 5.
+- Extreme pointer values like `-1`, `0x1`, and `0xdeadbeef`
+
 ### Memory Leak Tests
 
 Dedicated leak tests using **Valgrind**:
@@ -215,7 +223,7 @@ printf-fairy/
 ├── basic_tests_bonus.c       # Bonus flag/width/precision tests
 ├── leak_tests.c              # Leak tests (mandatory paths)
 ├── leak_tests_bonus.c        # Leak tests (bonus paths)
-├── utils.c                   # Helpers + malloc wrapper + compare()
+├── utils.c                   # Helpers + malloc wrapper + COMPARE()
 ├── printf_fairy.h            # Header file
 └── README.md                 # This file
 ```

@@ -11,22 +11,22 @@
 /* ************************************************************************** */
 
 static void	minus_c_test(void) {
-	if (!compare("[%-5c]", 'A'))
+	if (!COMPARE("[%-5c]", 'A'))
 		abort();
 }
 
 static void	minus_s_test(void) {
-	if (!compare("[%-10s]", "hi"))
+	if (!COMPARE("[%-10s]", "hi"))
 		abort();
 }
 
 static void	minus_d_test(void) {
-	if (!compare("[%-10d]", 42) || !compare("[%-10d]", -42))
+	if (!COMPARE("[%-10d]", 42) || !COMPARE("[%-10d]", -42))
 		abort();
 }
 
 static void	minus_x_test(void) {
-	if (!compare("[%-10x]", 255))
+	if (!COMPARE("[%-10x]", 255))
 		abort();
 }
 
@@ -37,7 +37,7 @@ static void	test_flag_minus(void) {
 		"with %d",
 		"with %x"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(minus_c_test),
 		!forked_test(minus_s_test),
@@ -54,37 +54,37 @@ static void	test_flag_minus(void) {
 /* ************************************************************************** */
 
 static void	zero_d_test(void) {
-	if (!compare("[%010d]", 42))
+	if (!COMPARE("[%010d]", 42))
 		abort();
 }
 
 static void	zero_d_negative_test(void) {
-	if (!compare("[%010d]", -42))
+	if (!COMPARE("[%010d]", -42))
 		abort();
 }
 
 static void	zero_x_test(void) {
-	if (!compare("[%08x]", 255))
+	if (!COMPARE("[%08x]", 255))
 		abort();
 }
 
 static void	zero_minus_test(void) {
-	if (!compare("[%-010d]", 42))
+	if (!COMPARE("[%-010d]", 42))
 		abort();
 }
 
 static void	zero_precision_test(void) {
-	if (!compare("[%010.5d]", 42))
+	if (!COMPARE("[%010.5d]", 42))
 		abort();
 }
 
 static void	zero_precision_zero_value_test(void) {
-	if (!compare("[%05.0d]", 0) || !compare("[%05.2d]", 0))
+	if (!COMPARE("[%05.0d]", 0) || !COMPARE("[%05.2d]", 0))
 		abort();
 }
 
 static void	zero_precision_short_test(void) {
-	if (!compare("[%05.1d]", 42) || !compare("[%08.2x]", 255))
+	if (!COMPARE("[%05.1d]", 42) || !COMPARE("[%08.2x]", 255))
 		abort();
 }
 
@@ -98,7 +98,7 @@ static void	test_flag_zero(void) {
 		"ignored if precision (zero value)",
 		"ignored if precision (prec <= digits)"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(zero_d_test),
 		!forked_test(zero_d_negative_test),
@@ -118,22 +118,22 @@ static void	test_flag_zero(void) {
 /* ************************************************************************** */
 
 static void	hash_x_test(void) {
-	if (!compare("[%#x]", 255) || !compare("[%#X]", 255))
+	if (!COMPARE("[%#x]", 255) || !COMPARE("[%#X]", 255))
 		abort();
 }
 
 static void	hash_zero_test(void) {
-	if (!compare("[%#x]", 0) || !compare("[%#X]", 0))
+	if (!COMPARE("[%#x]", 0) || !COMPARE("[%#X]", 0))
 		abort();
 }
 
 static void	hash_width_test(void) {
-	if (!compare("[%#10x]", 255))
+	if (!COMPARE("[%#10x]", 255))
 		abort();
 }
 
 static void	hash_zero_pad_test(void) {
-	if (!compare("[%#010x]", 255))
+	if (!COMPARE("[%#010x]", 255))
 		abort();
 }
 
@@ -144,7 +144,7 @@ static void	test_flag_hash(void) {
 		"with width",
 		"with zero pad"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(hash_x_test),
 		!forked_test(hash_zero_test),
@@ -161,22 +161,22 @@ static void	test_flag_hash(void) {
 /* ************************************************************************** */
 
 static void	space_positive_test(void) {
-	if (!compare("[% d]", 42))
+	if (!COMPARE("[% d]", 42))
 		abort();
 }
 
 static void	space_negative_test(void) {
-	if (!compare("[% d]", -42))
+	if (!COMPARE("[% d]", -42))
 		abort();
 }
 
 static void	space_zero_test(void) {
-	if (!compare("[% d]", 0))
+	if (!COMPARE("[% d]", 0))
 		abort();
 }
 
 static void	space_overridden_by_plus_test(void) {
-	if (!compare("[%+ d]", 42) || !compare("[% +d]", 42))
+	if (!COMPARE("[%+ d]", 42) || !COMPARE("[% +d]", 42))
 		abort();
 }
 
@@ -187,7 +187,7 @@ static void	test_flag_space(void) {
 		"with zero",
 		"overridden by +"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(space_positive_test),
 		!forked_test(space_negative_test),
@@ -204,22 +204,22 @@ static void	test_flag_space(void) {
 /* ************************************************************************** */
 
 static void	plus_positive_test(void) {
-	if (!compare("[%+d]", 42))
+	if (!COMPARE("[%+d]", 42))
 		abort();
 }
 
 static void	plus_negative_test(void) {
-	if (!compare("[%+d]", -42))
+	if (!COMPARE("[%+d]", -42))
 		abort();
 }
 
 static void	plus_zero_test(void) {
-	if (!compare("[%+d]", 0))
+	if (!COMPARE("[%+d]", 0))
 		abort();
 }
 
 static void	plus_zero_pad_test(void) {
-	if (!compare("[%+010d]", 42))
+	if (!COMPARE("[%+010d]", 42))
 		abort();
 }
 
@@ -230,7 +230,7 @@ static void	test_flag_plus(void) {
 		"with zero",
 		"with zero pad"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(plus_positive_test),
 		!forked_test(plus_negative_test),
@@ -247,22 +247,22 @@ static void	test_flag_plus(void) {
 /* ************************************************************************** */
 
 static void	width_basic_test(void) {
-	if (!compare("[%10d]", 42))
+	if (!COMPARE("[%10d]", 42))
 		abort();
 }
 
 static void	width_too_small_test(void) {
-	if (!compare("[%2d]", 42424))
+	if (!COMPARE("[%2d]", 42424))
 		abort();
 }
 
 static void	width_zero_test(void) {
-	if (!compare("[%0d]", 42))
+	if (!COMPARE("[%0d]", 42))
 		abort();
 }
 
 static void	width_with_string_test(void) {
-	if (!compare("[%10s]", "hi"))
+	if (!COMPARE("[%10s]", "hi"))
 		abort();
 }
 
@@ -273,7 +273,7 @@ static void	test_width(void) {
 		"width 0",
 		"with string"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(width_basic_test),
 		!forked_test(width_too_small_test),
@@ -290,37 +290,37 @@ static void	test_width(void) {
 /* ************************************************************************** */
 
 static void	prec_d_basic_test(void) {
-	if (!compare("[%.5d]", 42))
+	if (!COMPARE("[%.5d]", 42))
 		abort();
 }
 
 static void	prec_d_zero_test(void) {
-	if (!compare("[%.0d]", 0) || !compare("[%.0d]", 42))
+	if (!COMPARE("[%.0d]", 0) || !COMPARE("[%.0d]", 42))
 		abort();
 }
 
 static void	prec_s_truncate_test(void) {
-	if (!compare("[%.3s]", "hello") || !compare("[%.0s]", "hello"))
+	if (!COMPARE("[%.3s]", "hello") || !COMPARE("[%.0s]", "hello"))
 		abort();
 }
 
 static void	prec_s_longer_test(void) {
-	if (!compare("[%.10s]", "hi"))
+	if (!COMPARE("[%.10s]", "hi"))
 		abort();
 }
 
 static void	prec_x_test(void) {
-	if (!compare("[%.5x]", 255) || !compare("[%.0x]", 0))
+	if (!COMPARE("[%.5x]", 255) || !COMPARE("[%.0x]", 0))
 		abort();
 }
 
 static void	prec_no_number_test(void) {
-	if (!compare("[%.d]", 42) || !compare("[%.d]", 0))
+	if (!COMPARE("[%.d]", 42) || !COMPARE("[%.d]", 0))
 		abort();
 }
 
 static void	prec_width_combination_test(void) {
-	if (!compare("[%10.5d]", 42) || !compare("[%10.3s]", "hello"))
+	if (!COMPARE("[%10.5d]", 42) || !COMPARE("[%10.3s]", "hello"))
 		abort();
 }
 
@@ -334,7 +334,7 @@ static void	test_precision(void) {
 		"precision no number",
 		"width + precision"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(prec_d_basic_test),
 		!forked_test(prec_d_zero_test),
@@ -354,27 +354,27 @@ static void	test_precision(void) {
 /* ************************************************************************** */
 
 static void	combo_all_flags_test(void) {
-	if (!compare("[%+010.5d]", 42))
+	if (!COMPARE("[%+010.5d]", 42))
 		abort();
 }
 
 static void	combo_hash_zero_pad_x_test(void) {
-	if (!compare("[%#010x]", 255) || !compare("[%#010X]", 255))
+	if (!COMPARE("[%#010x]", 255) || !COMPARE("[%#010X]", 255))
 		abort();
 }
 
 static void	combo_minus_width_prec_s_test(void) {
-	if (!compare("[%-10.3s]", "hello"))
+	if (!COMPARE("[%-10.3s]", "hello"))
 		abort();
 }
 
 static void	combo_repeated_flags_test(void) {
-	if (!compare("[%+++d]", 42))
+	if (!COMPARE("[%+++d]", 42))
 		abort();
 }
 
 static void	combo_mixed_test(void) {
-	if (!compare("[%5.3s] [%+05d] [%#010x]", "hello", -42, 255))
+	if (!COMPARE("[%5.3s] [%+05d] [%#010x]", "hello", -42, 255))
 		abort();
 }
 
@@ -386,7 +386,7 @@ static void	test_combinations(void) {
 		"repeated flags",
 		"mixed format"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(combo_all_flags_test),
 		!forked_test(combo_hash_zero_pad_x_test),
@@ -413,28 +413,28 @@ static void	test_combinations(void) {
  */
 
 static void	neg_unsigned_with_flags_test(void) {
-	if (!compare("[%15.12u]", -1) || !compare("[%#x]", -1))
+	if (!COMPARE("[%15.12u]", -1) || !COMPARE("[%#x]", -1))
 		abort();
 }
 
 static void	pointer_width_test(void) {
-	if (!compare("[%20p]", (void *)0x42)
-		|| !compare("[%-20p]", (void *)0x42))
+	if (!COMPARE("[%20p]", (void *)0x42)
+		|| !COMPARE("[%-20p]", (void *)0x42))
 		abort();
 }
 
 static void	pointer_zero_pad_test(void) {
-	if (!compare("[%010p]", (void *)0x42))
+	if (!COMPARE("[%010p]", (void *)0x42))
 		abort();
 }
 
 static void	string_zero_flag_ignored_test(void) {
-	if (!compare("[%05s]", "hi"))
+	if (!COMPARE("[%05s]", "hi"))
 		abort();
 }
 
 static void	huge_width_test(void) {
-	if (!compare("[%1000d]", 42) || !compare("[%-1000s]", "x"))
+	if (!COMPARE("[%1000d]", 42) || !COMPARE("[%-1000s]", "x"))
 		abort();
 }
 
@@ -446,7 +446,7 @@ static void	test_misc_flags(void) {
 		"%s ignores flag 0",
 		"huge width padding"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(neg_unsigned_with_flags_test),
 		!forked_test(pointer_width_test),
@@ -478,21 +478,16 @@ static void	sweep(const char *convs[], const char *flags[], size_t nflags,
 	const char	*widths[] = {"", "1", "5", "10"};
 	const char	*precs[] = {"", ".", ".0", ".1", ".2", ".5", ".10"};
 	char		fmt[32];
-	size_t		c;
-	size_t		f;
-	size_t		w;
-	size_t		p;
-	size_t		v;
 
-	for (c = 0; convs[c]; c++)
-		for (f = 0; f < nflags; f++)
-			for (w = 0; w < 4; w++)
-				for (p = 0; p < 7; p++)
-					for (v = 0; v < nvals; v++)
+	for (size_t c = 0; convs[c]; c++)
+		for (size_t f = 0; f < nflags; f++)
+			for (size_t w = 0; w < ARRAY_SIZE(widths); w++)
+				for (size_t p = 0; p < ARRAY_SIZE(precs); p++)
+					for (size_t v = 0; v < nvals; v++)
 					{
 						snprintf(fmt, sizeof(fmt), "[%%%s%s%s%s]",
 							flags[f], widths[w], precs[p], convs[c]);
-						if (!compare(fmt, vals[v]))
+						if (!COMPARE(fmt, vals[v]))
 							abort();
 					}
 }
@@ -503,7 +498,8 @@ static void	exhaustive_signed_test(void)
 	const char	*flags[] = {"", "-", "0", "+", " ", "-0", "+0", " 0", "-+"};
 	const int	vals[] = {0, 1, -1, 42, -42, 2147483647, -2147483648, 7};
 
-	sweep(convs, flags, 9, vals, 8);
+	sweep(convs, flags, ARRAY_SIZE(flags),
+		vals, ARRAY_SIZE(vals));
 }
 
 static void	exhaustive_unsigned_test(void)
@@ -512,7 +508,7 @@ static void	exhaustive_unsigned_test(void)
 	const char	*flags[] = {"", "-", "0", "-0"};
 	const int	vals[] = {0, 1, 42, -1, -2147483648, 4242};
 
-	sweep(convs, flags, 4, vals, 6);
+	sweep(convs, flags, ARRAY_SIZE(flags), vals, ARRAY_SIZE(vals));
 }
 
 static void	exhaustive_hex_test(void)
@@ -521,7 +517,7 @@ static void	exhaustive_hex_test(void)
 	const char	*flags[] = {"", "-", "0", "#", "-0", "0#", "-#"};
 	const int	vals[] = {0, 1, 255, -1, -2147483648, 0xabcdef};
 
-	sweep(convs, flags, 7, vals, 6);
+	sweep(convs, flags, ARRAY_SIZE(flags), vals, ARRAY_SIZE(vals));
 }
 
 static void	exhaustive_str_test(void)
@@ -531,19 +527,15 @@ static void	exhaustive_str_test(void)
 	const char	*precs[] = {"", ".", ".0", ".3", ".10"};
 	const char	*vals[] = {"", "a", "hello", "abcdefghijklmnop"};
 	char		fmt[32];
-	size_t		f;
-	size_t		w;
-	size_t		p;
-	size_t		v;
 
-	for (f = 0; f < 2; f++)
-		for (w = 0; w < 4; w++)
-			for (p = 0; p < 5; p++)
-				for (v = 0; v < 4; v++)
+	for (size_t f = 0; f < ARRAY_SIZE(flags); f++)
+		for (size_t w = 0; w < ARRAY_SIZE(widths); w++)
+			for (size_t p = 0; p < ARRAY_SIZE(precs); p++)
+				for (size_t v = 0; v < ARRAY_SIZE(vals); v++)
 				{
 					snprintf(fmt, sizeof(fmt), "[%%%s%s%ss]",
 						flags[f], widths[w], precs[p]);
-					if (!compare(fmt, vals[v]))
+					if (!COMPARE(fmt, vals[v]))
 						abort();
 				}
 }
@@ -556,7 +548,7 @@ static void	test_exhaustive(void)
 		"hex x/X sweep",
 		"string s sweep"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(exhaustive_signed_test),
 		!forked_test(exhaustive_unsigned_test),
@@ -574,22 +566,24 @@ static void	test_exhaustive(void)
 
 static void	hash_precision_test(void)
 {
-	if (!compare("[%#.5x]", 255) || !compare("[%#.0x]", 0)
-		|| !compare("[%#.5X]", 255))
+	if (!COMPARE("[%#.5x]", 255)
+		|| !COMPARE("[%#.0x]", 0)
+		|| !COMPARE("[%#.5X]", 255))
 		abort();
 }
 
 static void	huge_precision_test(void)
 {
-	if (!compare("[%.40d]", 7) || !compare("[%.40u]", 7))
+	if (!COMPARE("[%.40d]", 7)
+		|| !COMPARE("[%.40u]", 7))
 		abort();
 }
 
 static void	pointer_extreme_test(void)
 {
-	if (!compare("[%p]", (void *)-1)
-		|| !compare("[%p]", (void *)0x1)
-		|| !compare("[%-20p]", (void *)0xdeadbeef))
+	if (!COMPARE("[%p]", (void *)-1)
+		|| !COMPARE("[%p]", (void *)0x1)
+		|| !COMPARE("[%-20p]", (void *)0xdeadbeef))
 		abort();
 }
 
@@ -600,7 +594,7 @@ static void	test_extra_edges(void)
 		"huge precision (40)",
 		"pointer extremes"
 	};
-	const size_t	num_tests = sizeof(tests) / sizeof(*tests);
+	const size_t	num_tests = ARRAY_SIZE(tests);
 	const int		passed[] = {
 		!forked_test(hash_precision_test),
 		!forked_test(huge_precision_test),

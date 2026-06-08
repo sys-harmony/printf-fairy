@@ -29,7 +29,8 @@ extern int	g_tests_failed;
 // =============================
 // 🪄 Macro(s)
 // =============================
-# define compare(...) \
+# define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(*(arr)))
+# define COMPARE(...) \
 	({ \
 		int ft_ret, libc_ret; \
 		char ft_buf[2048] = {0}; \
