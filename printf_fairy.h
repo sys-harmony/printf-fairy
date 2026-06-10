@@ -25,6 +25,7 @@ extern int	g_malloc_wrap_enabled;
 extern int	g_malloc_count;
 extern int	g_malloc_fail_at;
 extern int	g_tests_failed;
+extern char	*g_fail_msg;
 
 // =============================
 // 🪄 Macro(s)
@@ -56,5 +57,7 @@ void		print_test_results(char *function_name, const size_t num_tests,
 				const char *tests[], const int passed[]);
 void		error_exit(char *msg);
 int			forked_test(void (*test_func)(void));
+void		fail_record_int(const char *fmt, int val);
+void		fail_record_str(const char *fmt, const char *val);
 
 #endif //PRINTF_FAIRY_H

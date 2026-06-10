@@ -1,9 +1,13 @@
 #include "printf_fairy.h"
+#include <sys/mman.h>
 
-int	g_malloc_wrap_enabled = 0;
-int	g_malloc_count;
-int	g_malloc_fail_at;
-int	g_tests_failed = 0;
+#define FAIL_MSG_SIZE 256
+
+int		g_malloc_wrap_enabled = 0;
+int		g_malloc_count;
+int		g_malloc_fail_at;
+int		g_tests_failed = 0;
+char	*g_fail_msg = NULL;
 
 void	*__wrap_malloc(size_t size) {
 	if (g_malloc_wrap_enabled && ++g_malloc_count == g_malloc_fail_at)
@@ -60,6 +64,16 @@ void	print_test_results(char *function_name, const size_t num_tests, const char 
 	}
 }
 
+void	fail_record_int(const char *fmt, int val) {
+	if (g_fail_msg)
+		snprintf(g_fail_msg, FAIL_MSG_SIZE, "fmt=[%s] val=%d", fmt, val);
+}
+
+void	fail_record_str(const char *fmt, const char *val) {
+	if (g_fail_msg)
+		snprintf(g_fail_msg, FAIL_MSG_SIZE, "fmt=[%s] val=\"%s\"", fmt, val);
+}
+
 #include <stdlib.h>
 
 void	error_exit(char *msg) {
@@ -82,6 +96,14 @@ int	forked_test(void (*test_func)(void)) {
 	pid_t	pid;
 	int		status;
 
+	if (!g_fail_msg) {
+		g_fail_msg = mmap(NULL, FAIL_MSG_SIZE, PROT_READ | PROT_WRITE,
+				MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+		if (g_fail_msg == MAP_FAILED)
+			g_fail_msg = NULL;
+		else
+			g_fail_msg[0] = '\0';
+	}
 	fflush(stdout);
 	pid = fork();
 	if (pid == -1)

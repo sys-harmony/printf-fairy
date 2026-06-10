@@ -473,8 +473,7 @@ static void	test_misc_flags(void) {
  */
 
 static void	sweep(const char *convs[], const char *flags[], size_t nflags,
-				const int vals[], size_t nvals)
-{
+				const int vals[], size_t nvals) {
 	const char	*widths[] = {"", "1", "5", "10"};
 	const char	*precs[] = {"", ".", ".0", ".1", ".2", ".5", ".10"};
 	char		fmt[32];
@@ -488,22 +487,22 @@ static void	sweep(const char *convs[], const char *flags[], size_t nflags,
 						snprintf(fmt, sizeof(fmt), "[%%%s%s%s%s]",
 							flags[f], widths[w], precs[p], convs[c]);
 						if (!COMPARE(fmt, vals[v]))
+						{
+							fail_record_int(fmt, vals[v]);
 							abort();
+						}
 					}
 }
 
-static void	exhaustive_signed_test(void)
-{
+static void	exhaustive_signed_test(void) {
 	const char	*convs[] = {"d", "i", NULL};
 	const char	*flags[] = {"", "-", "0", "+", " ", "-0", "+0", " 0", "-+"};
 	const int	vals[] = {0, 1, -1, 42, -42, 2147483647, -2147483648, 7};
 
-	sweep(convs, flags, ARRAY_SIZE(flags),
-		vals, ARRAY_SIZE(vals));
+	sweep(convs, flags, ARRAY_SIZE(flags), vals, ARRAY_SIZE(vals));
 }
 
-static void	exhaustive_unsigned_test(void)
-{
+static void	exhaustive_unsigned_test(void) {
 	const char	*convs[] = {"u", NULL};
 	const char	*flags[] = {"", "-", "0", "-0"};
 	const int	vals[] = {0, 1, 42, -1, -2147483648, 4242};
@@ -511,8 +510,7 @@ static void	exhaustive_unsigned_test(void)
 	sweep(convs, flags, ARRAY_SIZE(flags), vals, ARRAY_SIZE(vals));
 }
 
-static void	exhaustive_hex_test(void)
-{
+static void	exhaustive_hex_test(void) {
 	const char	*convs[] = {"x", "X", NULL};
 	const char	*flags[] = {"", "-", "0", "#", "-0", "0#", "-#"};
 	const int	vals[] = {0, 1, 255, -1, -2147483648, 0xabcdef};
@@ -520,8 +518,7 @@ static void	exhaustive_hex_test(void)
 	sweep(convs, flags, ARRAY_SIZE(flags), vals, ARRAY_SIZE(vals));
 }
 
-static void	exhaustive_str_test(void)
-{
+static void	exhaustive_str_test(void) {
 	const char	*flags[] = {"", "-"};
 	const char	*widths[] = {"", "1", "5", "10"};
 	const char	*precs[] = {"", ".", ".0", ".3", ".10"};
@@ -536,12 +533,42 @@ static void	exhaustive_str_test(void)
 					snprintf(fmt, sizeof(fmt), "[%%%s%s%ss]",
 						flags[f], widths[w], precs[p]);
 					if (!COMPARE(fmt, vals[v]))
+					{
+						fail_record_str(fmt, vals[v]);
 						abort();
+					}
 				}
 }
 
-static void	test_exhaustive(void)
-{
+static int	run_sweep(void (*fn)(void), char *msg) {
+	int	passed;
+
+	passed = !forked_test(fn);
+	msg[0] = '\0';
+	if (!passed && g_fail_msg && g_fail_msg[0])
+		strncpy(msg, g_fail_msg, 255);
+	if (g_fail_msg)
+		g_fail_msg[0] = '\0';
+	return (passed);
+}
+
+static const char	**build_labels(const char *tests[],
+						char msgs[][256], size_t num_tests) {
+	static char			buf[4][320];
+	static const char	*labels[4];
+
+	for (size_t i = 0; i < num_tests; i++)
+	{
+		if (msgs[i][0])
+			snprintf(buf[i], sizeof(*buf), "%s: %s", tests[i], msgs[i]);
+		else
+			snprintf(buf[i], sizeof(*buf), "%s", tests[i]);
+		labels[i] = buf[i];
+	}
+	return (labels);
+}
+
+static void	test_exhaustive(void) {
 	const char		*tests[] = {
 		"signed d/i sweep",
 		"unsigned u sweep",
@@ -549,46 +576,47 @@ static void	test_exhaustive(void)
 		"string s sweep"
 	};
 	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(exhaustive_signed_test),
-		!forked_test(exhaustive_unsigned_test),
-		!forked_test(exhaustive_hex_test),
-		!forked_test(exhaustive_str_test)
+	void			(*fns[4])(void) = {
+		exhaustive_signed_test,
+		exhaustive_unsigned_test,
+		exhaustive_hex_test,
+		exhaustive_str_test
 	};
+	char			msgs[4][256];
+	int				passed[4];
 
+	for (size_t i = 0; i < num_tests; i++)
+		passed[i] = run_sweep(fns[i], msgs[i]);
 	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("exhaustive sweep (bonus)", num_tests, tests, passed);
+		print_test_results("exhaustive sweep (bonus)", num_tests,
+			build_labels(tests, msgs, num_tests), passed);
 }
 
 /* ************************************************************************** */
 /*                          extra isolated edge cases                         */
 /* ************************************************************************** */
 
-static void	hash_precision_test(void)
-{
+static void	hash_precision_test(void) {
 	if (!COMPARE("[%#.5x]", 255)
 		|| !COMPARE("[%#.0x]", 0)
 		|| !COMPARE("[%#.5X]", 255))
 		abort();
 }
 
-static void	huge_precision_test(void)
-{
+static void	huge_precision_test(void) {
 	if (!COMPARE("[%.40d]", 7)
 		|| !COMPARE("[%.40u]", 7))
 		abort();
 }
 
-static void	pointer_extreme_test(void)
-{
+static void	pointer_extreme_test(void) {
 	if (!COMPARE("[%p]", (void *)-1)
 		|| !COMPARE("[%p]", (void *)0x1)
 		|| !COMPARE("[%-20p]", (void *)0xdeadbeef))
 		abort();
 }
 
-static void	test_extra_edges(void)
-{
+static void	test_extra_edges(void) {
 	const char		*tests[] = {
 		"# with precision (x/X)",
 		"huge precision (40)",
