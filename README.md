@@ -7,7 +7,7 @@ A comprehensive tester for 42's **ft_printf** project, featuring memory leak det
 - ✅ Complete tests for all conversions (mandatory + bonus)
 - 🧹 Clean execution (automatic cleanup of temporary files)
 - 🔍 Automatic verification with **norminette**
-- 📋 Prototype validation in ft_printf.h
+- 📋 Prototype validation in project headers
 - ⚙️ Makefile rules verification (NAME, all, clean, fclean, re, bonus)
 - 🔧 Compilation flags check (-Wall -Wextra -Werror)
 - 🔎 External function usage verification
@@ -102,7 +102,7 @@ On failure, details of failed tests will be displayed, along with Valgrind logs 
 ### Pre-compilation Checks
 
 - **Norminette**: Validates all .c and .h files
-- **Prototype**: Verifies `int ft_printf(const char *, ...)` in ft_printf.h
+- **Prototype**: Verifies `int ft_printf(const char *, ...)` in any project header (`*.h`)
 - **Makefile**: Checks for required rules and proper compilation flags
 - **External functions**: Ensures only allowed symbols are referenced (`malloc`, `free`, `write`, plus `memset`/`memcpy` which gcc may emit from struct initialisation; `va_*` are inlined and invisible to `nm`)
 

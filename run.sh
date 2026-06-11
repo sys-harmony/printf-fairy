@@ -94,12 +94,17 @@ else
 fi
 
 echo -e -n "📋 Checking prototype..."
-regex="int\t+ft_printf\(const char \*format, \.\.\.\)"
-if ! grep -Pq "$regex" ft_printf.h; then
+PROTO_REGEX='(^|[^_[:alnum:]])int[[:space:]]+ft_printf[[:space:]]*\([[:space:]]*'
+PROTO_REGEX+='const[[:space:]]+char[[:space:]]*\*[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?'
+PROTO_REGEX+='[[:space:]]*,[[:space:]]*\.\.\.[[:space:]]*\)'
+PROTO_HITS=$(find . -type d -name "$TESTER_NAME" -prune -o \
+    -name "*.h" -type f -print \
+    | xargs -r grep -lP "$PROTO_REGEX" 2>/dev/null)
+if [ -z "$PROTO_HITS" ]; then
     PROTO_TEST_RES=1
     echo -e "\t${RED}Failed${RESET}"
     echo ""
-    echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *format, ...)"
+    echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *, ...)"
     echo ""
 else
     echo -e "\t  Done"
@@ -215,6 +220,15 @@ fi
 
 echo -e -n "🔨 Building tests..."
 CFLAGS="-Wall -Wextra -Wno-format -I."
+for h in $PROTO_HITS; do
+    dir=$(dirname "$h")
+    case " $CFLAGS " in
+        *" -I$dir "*) ;;
+        *) CFLAGS="$CFLAGS -I$dir" ;;
+    esac
+done
+PROTO_HEADER=$(echo "$PROTO_HITS" | head -1)
+CFLAGS="$CFLAGS -include $PROTO_HEADER"
 LDFLAGS="-L. -lftprintf"
 WRAP_FLAGS="-Wl,--wrap=malloc"
 BUILD_ISSUES=""
