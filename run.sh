@@ -181,16 +181,24 @@ fi
 echo -e -n "🔍 Checking externals..."
 EXTERN_ALLOWED="malloc free write memset memcpy"
 EXTERN_ERRORS=""
+DEFINED_SYMS=""
+collect_defined_syms() {
+    DEFINED_SYMS=" $(for o in *.o; do
+        [[ -f "$o" ]] && nm --defined-only "$o" 2>/dev/null | awk '{print $NF}'
+    done | sort -u | tr '\n' ' ') "
+}
 check_obj() {
     local obj=$1
     local forbidden=""
     for ext in $(nm -u "$obj" 2>/dev/null | awk '{print $2}'); do
         [[ "$ext" == ft_* || "$ext" == __* ]] && continue
         [[ " $EXTERN_ALLOWED " =~ " $ext " ]] && continue
+        [[ "$DEFINED_SYMS" == *" $ext "* ]] && continue
         forbidden="$forbidden $ext"
     done
     [[ -n "$forbidden" ]] && echo "$(basename "$obj" .o): forbidden:$forbidden"
 }
+collect_defined_syms
 for obj in *.o; do
     [[ -f "$obj" ]] || continue
     result=$(check_obj "$obj")
@@ -262,6 +270,7 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
 
     echo -e -n "🔍 Checking bonus externals..."
     BONUS_EXTERN_ERRORS=""
+    collect_defined_syms
     for obj in *.o; do
         [[ -f "$obj" ]] || continue
         result=$(check_obj "$obj")
