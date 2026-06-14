@@ -23,12 +23,17 @@ cd "$PROJECT_DIR" || exit 1
 
 TESTER_NAME=$(basename "$TESTER_DIR")
 
+# ---- alignment helpers ------------------------------------------------------
+COL=33
+ok()   { printf "\033[${COL}G  Done\n"; }
+fail() { printf "\033[${COL}G${RED}Failed${RESET}\n"; }
+
 cleanup() {
     echo ""
-    echo -e -n "🧹 Cleaning up..."
+    printf "🧹 Cleaning up..."
     rm -rf "$TMP_DIR"
     make fclean > /dev/null 2>&1 || true
-    echo -e "\t\t  Done"
+    ok
     echo ""
 }
 
@@ -71,29 +76,28 @@ echo -e "${PINK}║           PRINTF-FAIRY 🧚          ║${RESET}"
 echo -e "${PINK}╚════════════════════════════════════╝${RESET}"
 echo
 
-echo -e -n "📝 Checking norm..."
+printf "📝 Checking norm..."
 NORM_OUTPUT=$(find . -type d -name "$TESTER_NAME" -prune -o \
     \( -name "*.c" -o -name "*.h" \) -type f -print | xargs -r norminette 2>&1)
-
 if echo "$NORM_OUTPUT" | grep -q "Error"; then
     NORM_TEST_RES=1
-    echo -e "\t\t${RED}Failed${RESET}"
+    fail
     echo ""
     echo "$NORM_OUTPUT" | grep "Error"
     echo ""
 else
-    echo -e "\t\t  Done"
+    ok
 fi
 
-echo -e -n "🔖 Checking version..."
+printf "🔖 Checking version..."
 if grep -qi "bonus:" Makefile; then
     BONUS_VERSION=1
-    echo -e "\t\t Bonus"
+    printf "\033[34GBonus\n"
 else
-    echo -e "\t     ${YELLOW}Mandatory${RESET}"
+    printf "\033[30G${YELLOW}Mandatory${RESET}\n"
 fi
 
-echo -e -n "📋 Checking prototype..."
+printf "📋 Checking prototype..."
 PROTO_REGEX='(^|[^_[:alnum:]])int[[:space:]]+ft_printf[[:space:]]*\([[:space:]]*'
 PROTO_REGEX+='const[[:space:]]+char[[:space:]]*\*[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?'
 PROTO_REGEX+='[[:space:]]*,[[:space:]]*\.\.\.[[:space:]]*\)'
@@ -102,18 +106,18 @@ PROTO_HITS=$(find . -type d -name "$TESTER_NAME" -prune -o \
     | xargs -r grep -lP "$PROTO_REGEX" 2>/dev/null)
 if [ -z "$PROTO_HITS" ]; then
     PROTO_TEST_RES=1
-    echo -e "\t${RED}Failed${RESET}"
+    fail
     echo ""
     echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *, ...)"
     echo ""
 else
-    echo -e "\t  Done"
+    ok
 fi
 
-echo -e -n "⚙️  Checking Makefile..."
+printf "⚙️  Checking Makefile..."
 MAKE_ISSUES=""
 if [ ! -f "Makefile" ]; then
-    echo -e "${RED}Failed${RESET}"
+    fail
     echo ""
     echo "No Makefile found!"
     exit 1
@@ -156,14 +160,14 @@ if [ "$timestamp_after" -ne "$timestamp_before" ]; then
     MAKE_ISSUES+="Unnecessary relink detected when running make twice\n"
 fi
 if [ $MAKE_ERRORS -eq 0 ]; then
-    echo -e "\t\t  Done"
+    ok
 else
-    echo -e "\t\t${RED}Failed${RESET}"
+    fail
     echo ""
     echo -e "$MAKE_ISSUES"
 fi
 
-echo -e -n "📦 Building ft_printf..."
+printf "📦 Building ft_printf..."
 BUILD_ISSUES=""
 MAKE_OUTPUT=$(make re 2>&1)
 if [ $? -ne 0 ]; then
@@ -175,15 +179,15 @@ if [ ! -f "libftprintf.a" ]; then
     BUILD_ISSUES+="File 'libftprintf.a' was not produced.\n"
 fi
 if [ $BASIC_BUILD_ERRORS -eq 0 ]; then
-    echo -e "\t  Done"
+    ok
 else
-    echo -e "\t${RED}Failed${RESET}"
+    fail
     echo ""
     echo -e "$BUILD_ISSUES"
     exit 1
 fi
 
-echo -e -n "🔍 Checking externals..."
+printf "🔍 Checking externals..."
 EXTERN_ALLOWED="malloc free write memset memcpy"
 EXTERN_ERRORS=""
 DEFINED_SYMS=""
@@ -210,15 +214,15 @@ for obj in *.o; do
     [[ -n "$result" ]] && EXTERN_ERRORS="$EXTERN_ERRORS$result\n"
 done
 if [[ -z "$EXTERN_ERRORS" ]]; then
-    echo -e "\t  Done"
+    ok
 else
-    echo -e "\t${RED}Failed${RESET}"
+    fail
     echo ""
     echo -e "$EXTERN_ERRORS"
     echo ""
 fi
 
-echo -e -n "🔨 Building tests..."
+printf "🔨 Building tests..."
 CFLAGS="-Wall -Wextra -Wno-format -I."
 for h in $PROTO_HITS; do
     dir=$(dirname "$h")
@@ -240,18 +244,20 @@ compile_test() {
     cc $CFLAGS -DVERBOSE=$VERBOSE "$src" "$TESTER_NAME/utils.c" -o "$out" $WRAP_FLAGS $LDFLAGS 2> "$err" || return 1
 }
 
-compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test" "$TMP_DIR/basic_build.err" || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="basic_tests compilation failed:\n$(cat "$TMP_DIR/basic_build.err")\n"; }
-compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test" "$TMP_DIR/leak_build.err" || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="leak_tests compilation failed:\n$(cat "$TMP_DIR/leak_build.err")\n"; }
+compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test" "$TMP_DIR/basic_build.err" \
+    || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="basic_tests compilation failed:\n$(cat "$TMP_DIR/basic_build.err")\n"; }
+compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test" "$TMP_DIR/leak_build.err" \
+    || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="leak_tests compilation failed:\n$(cat "$TMP_DIR/leak_build.err")\n"; }
 
 if [ $TEST_BUILD_ERRORS -eq 0 ]; then
-    echo -e "\t\t  Done"
+    ok
 else
-    echo -e "\t\t${RED}Failed${RESET}"
+    fail
     echo -e "$BUILD_ISSUES"
     exit 1
 fi
 
-echo -e -n "🧪 Running tests..."
+printf "🧪 Running tests..."
 basic_log="$TMP_DIR/basic.log"
 leak_log="$TMP_DIR/leak.log"
 
@@ -263,26 +269,25 @@ valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
 LEAK_RC=$?
 
 if [[ $BASIC_RC -eq 0 && $LEAK_RC -eq 0 ]]; then
-    echo -e "\t\t  Done"
+    ok
 else
-    echo -e "\t\t${RED}Failed${RESET}"
+    fail
 fi
 [[ $BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$basic_log")"
 [[ $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (mandatory)\n════════════════════════════════════════\n$(cat "$leak_log")"
 
 if [[ $BONUS_VERSION -eq 1 ]]; then
-    [[ $BASIC_RC -ne 0 || $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo ""
-    echo -e -n "📦 Building bonus ft_printf..."
+    printf "📦 Building bonus ft_printf..."
     MAKE_OUTPUT=$(make re bonus 2>&1)
     if [ $? -ne 0 ]; then
         BONUS_BUILD_ERRORS=1
-        echo -e "${RED}Failed${RESET}"
+        fail
         exit 1
     else
-        echo -e "\t  Done"
+        ok
     fi
 
-    echo -e -n "🔍 Checking bonus externals..."
+    printf "🔍 Checking bonus externals..."
     BONUS_EXTERN_ERRORS=""
     collect_defined_syms
     for obj in *.o; do
@@ -291,30 +296,31 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
         [[ -n "$result" ]] && BONUS_EXTERN_ERRORS="$BONUS_EXTERN_ERRORS$result\n"
     done
     if [[ -z "$BONUS_EXTERN_ERRORS" ]]; then
-        echo -e "\t  Done"
+        ok
     else
-        echo -e "\t${RED}Failed${RESET}"
+        fail
         echo ""
         echo -e "$BONUS_EXTERN_ERRORS"
-        # On ajoute les erreurs bonus à la variable globale pour faire 
-        # planter la bannière finale "OH NO YOU FAILED"
         EXTERN_ERRORS="${EXTERN_ERRORS}${BONUS_EXTERN_ERRORS}"
     fi
 
-    echo -e -n "🔨 Building bonus tests..."
-    compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test_re" "$TMP_DIR/basic_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test_re" "$TMP_DIR/leak_re_build.err" || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/basic_tests_bonus.c" "$TMP_DIR/basic_test_bonus" "$TMP_DIR/basic_bonus_build.err" || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/leak_tests_bonus.c" "$TMP_DIR/leak_test_bonus" "$TMP_DIR/leak_bonus_build.err" || BONUS_TEST_BUILD_ERRORS=1
-    
+    printf "🔨 Building bonus tests..."
+    compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test_re" "$TMP_DIR/basic_re_build.err" \
+        || BONUS_TEST_BUILD_ERRORS=1
+    compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test_re" "$TMP_DIR/leak_re_build.err" \
+        || BONUS_TEST_BUILD_ERRORS=1
+    compile_test "$TESTER_NAME/basic_tests_bonus.c" "$TMP_DIR/basic_test_bonus" "$TMP_DIR/basic_bonus_build.err" \
+        || BONUS_TEST_BUILD_ERRORS=1
+    compile_test "$TESTER_NAME/leak_tests_bonus.c" "$TMP_DIR/leak_test_bonus" "$TMP_DIR/leak_bonus_build.err" \
+        || BONUS_TEST_BUILD_ERRORS=1
     if [ $BONUS_TEST_BUILD_ERRORS -eq 0 ]; then
-        echo -e "\t  Done"
+        ok
     else
-        echo -e "\t${RED}Failed${RESET}"
+        fail
         exit 1
     fi
 
-    echo -e -n "🧪 Running bonus tests..."
+    printf "🧪 Running bonus tests..."
     bonus_basic_log="$TMP_DIR/basic_bonus.log"
     bonus_leak_log="$TMP_DIR/leak_bonus.log"
     "$TMP_DIR/basic_test_re" > "$bonus_basic_log" 2>&1
@@ -330,11 +336,10 @@ if [[ $BONUS_VERSION -eq 1 ]]; then
         "$TMP_DIR/leak_test_bonus" >/dev/null 2>>"$bonus_leak_log"
     BONUS_LEAK_RC=$((BONUS_LEAK_RC + $?))
     if [[ $BONUS_BASIC_RC -eq 0 && $BONUS_LEAK_RC -eq 0 ]]; then
-        echo -e "\t  Done"
+        ok
     else
-        echo -e "\t${RED}Failed${RESET}"
+        fail
     fi
-
     [[ $BONUS_BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$bonus_basic_log")"
     [[ $BONUS_LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (bonus)\n════════════════════════════════════════\n$(cat "$bonus_leak_log")"
 fi
