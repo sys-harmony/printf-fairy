@@ -12,6 +12,7 @@
 # include <stdlib.h>
 # include <string.h>
 # include <unistd.h>
+# include <sys/resource.h>
 # include <sys/wait.h>
 
 // =============================
@@ -25,6 +26,7 @@
 # define RESET			"\033[0m"
 # define WIDTH			46		// as in run.sh
 # define TEST_TIMEOUT	5		// seconds before a test counts as hanging
+# define OUTPUT_LIMIT	(8 << 20)	// bytes a test may write to files
 # ifndef VERBOSE
 #  define VERBOSE		0
 # endif
@@ -98,6 +100,22 @@ extern int	g_malloc_fail_at;
 		snprintf(fmt_, sizeof(fmt_), "[%%%s%s%s%c]", \
 			flags[f_], widths[w_], precs[p_], *c_); \
 		COMPARE(!defined(flags[f_], *precs[p_], *c_), fmt_, vals[v_]); \
+	}
+
+/*
+ * Makes the 1st, then the 2nd... malloc of call fail, until call no longer
+ * reaches that many: every allocation site fails once.
+ */
+# define EACH_MALLOC_FAILING(call) \
+	for (int k_ = 1; ; k_++) \
+	{ \
+		g_malloc_count = 0; \
+		g_malloc_fail_at = k_; \
+		g_malloc_wrap_enabled = 1; \
+		call; \
+		g_malloc_wrap_enabled = 0; \
+		if (g_malloc_count < k_) \
+			break ; \
 	}
 
 // =============================

@@ -139,8 +139,8 @@ static void	closed_stdout_test(void) {
 }
 
 /*
- * Makes the 1st, then 2nd, ... malloc fail: ft_printf may give up, but not
- * crash. An implementation that never calls malloc passes as is.
+ * Each malloc failing in turn: ft_printf may give up, but not crash (leaks
+ * are Valgrind's, in leak_tests). One that never calls malloc passes as is.
  */
 static void	malloc_fail_test(void) {
 	char	big[10000];
@@ -148,11 +148,8 @@ static void	malloc_fail_test(void) {
 	memset(big, 'a', sizeof(big) - 1);
 	big[sizeof(big) - 1] = '\0';
 	silence_stdout();
-	g_malloc_wrap_enabled = 1;
-	for (g_malloc_fail_at = 1; g_malloc_fail_at <= 5; g_malloc_fail_at++) {
-		g_malloc_count = 0;
-		ft_printf("%s %d %s %p\n", big, 42, "x", (void *)big);
-	}
+	EACH_MALLOC_FAILING(ft_printf("%s %d %s %p %c %u %x %X %%\n", big, 42, "x", (void *)big, 'c', 7u, 255u, 255u));
+	EACH_MALLOC_FAILING(ft_printf("short %d\n", 42));
 }
 
 static const t_test	g_robustness_tests[] = {

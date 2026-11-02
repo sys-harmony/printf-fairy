@@ -29,11 +29,22 @@ static void	leak_test_null_pointers(void) {
 	ft_printf("%s %p\n", (char *)NULL, (void *)NULL);
 }
 
+/* Each malloc failing in turn: what was allocated before must be freed. */
+static void	leak_test_malloc_fail(void) {
+	char	big[8192];
+
+	memset(big, 'a', sizeof(big) - 1);
+	big[sizeof(big) - 1] = '\0';
+	EACH_MALLOC_FAILING(ft_printf("%s %c %s %p %d %u %x %X %%\n", big, 'Z', "s", (void *)big, -1, 42u, 255u, 255u));
+	EACH_MALLOC_FAILING(ft_printf("short %s %d\n", "hello", 42));
+}
+
 int	main(void) {
 	silence_stdout();
 	leak_test_short();
 	leak_test_long();
 	leak_test_many_args();
 	leak_test_null_pointers();
+	leak_test_malloc_fail();
 	return 0;
 }

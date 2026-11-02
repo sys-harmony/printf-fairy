@@ -5,8 +5,8 @@ int	g_malloc_wrap_enabled = 0;
 int	g_malloc_count = 0;
 int	g_malloc_fail_at = 0;
 
-static int	g_saved_stdout;
-static int	g_pipefd[2];
+static int	g_saved_stdout = -1;
+static int	g_capture = -1;
 
 /* With -Wl,--wrap=malloc, the n-th malloc (g_malloc_fail_at) returns NULL. */
 void	*__wrap_malloc(size_t size) {
@@ -27,26 +27,35 @@ void	silence_stdout(void) {
 /*                              stdout capture                                */
 /* ************************************************************************** */
 
+/*
+ * stdout goes to a temp file, not a pipe: a pipe holds 64 KB, past which a
+ * write blocks for good, and an output far too long would pass for a hang.
+ * The file is rewound, not truncated: where writing ends gives the length.
+ */
 void	capture_start(void) {
 	fflush(stdout);
-	g_saved_stdout = dup(STDOUT_FILENO);
-	if (g_saved_stdout < 0 || pipe(g_pipefd) < 0)
+	if (g_capture < 0) {
+		FILE	*f = tmpfile();
+
+		g_saved_stdout = dup(STDOUT_FILENO);
+		if (!f || g_saved_stdout < 0)
+			die("printf-fairy: capture");
+		g_capture = fileno(f);
+	}
+	if (lseek(g_capture, 0, SEEK_SET) < 0)
 		die("printf-fairy: capture");
-	dup2(g_pipefd[1], STDOUT_FILENO);
-	close(g_pipefd[1]);
+	dup2(g_capture, STDOUT_FILENO);
 }
 
 void	capture_end(t_capture *cap) {
-	ssize_t	n;
+	off_t	len;
 
 	fflush(stdout);
+	len = lseek(g_capture, 0, SEEK_CUR);
 	dup2(g_saved_stdout, STDOUT_FILENO);
-	close(g_saved_stdout);
-	cap->len = 0;
-	while (cap->len < CAPTURE_SIZE
-		&& (n = read(g_pipefd[0], cap->buf + cap->len, CAPTURE_SIZE - cap->len)) > 0)
-		cap->len += n;
-	close(g_pipefd[0]);
+	cap->len = pread(g_capture, cap->buf, len < CAPTURE_SIZE ? len : CAPTURE_SIZE, 0);
+	if (cap->len < 0)
+		cap->len = 0;
 }
 
 /* ************************************************************************** */
@@ -153,7 +162,11 @@ void	warning(const char *fmt, ...) {
 	g_warned = 1;
 }
 
-/* Runs one test in a child: 0 passed, 1 failed, 2 warned. Its output in log. */
+/*
+ * Runs one test in a child: 0 passed, 1 failed, 2 warned. Its output in log.
+ * The child may not write files past OUTPUT_LIMIT: an endless output stops
+ * there instead of filling the disk.
+ */
 static int	fork_test(const t_test *t, char *log, size_t size) {
 	static int	fd = -1;
 	pid_t		pid;
@@ -175,6 +188,7 @@ static int	fork_test(const t_test *t, char *log, size_t size) {
 	if (pid < 0)
 		die("fairy: fork");
 	if (!pid) {
+		setrlimit(RLIMIT_FSIZE, &(struct rlimit){OUTPUT_LIMIT, OUTPUT_LIMIT});
 		dup2(fd, STDOUT_FILENO);
 		dup2(fd, STDERR_FILENO);
 		alarm(g_timeout);
@@ -188,7 +202,9 @@ static int	fork_test(const t_test *t, char *log, size_t size) {
 	log[len] = '\0';
 	if (WIFEXITED(status))
 		return WEXITSTATUS(status) == 2 ? 2 : WEXITSTATUS(status) != 0;
-	if (WTERMSIG(status) != SIGALRM)
+	if (WTERMSIG(status) == SIGXFSZ)
+		snprintf(log + len, size - len, "↳ wrote more than %d MB: endless output?\n", OUTPUT_LIMIT >> 20);
+	else if (WTERMSIG(status) != SIGALRM)
 		snprintf(log + len, size - len, "↳ crashed: %s\n", strsignal(WTERMSIG(status)));
 	else {
 		snprintf(log + len, size - len, "↳ timeout after %ds (infinite loop?)%s\n", g_timeout,

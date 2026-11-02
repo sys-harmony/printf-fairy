@@ -24,8 +24,19 @@ static void	leak_test_huge_string_with_width(void) {
 	ft_printf("[%-9000s]\n", big);
 }
 
+/* Each malloc failing in turn, flags on: what was allocated must be freed. */
+static void	leak_test_malloc_fail(void) {
+	char	big[8192];
+
+	memset(big, 'c', sizeof(big) - 1);
+	big[sizeof(big) - 1] = '\0';
+	EACH_MALLOC_FAILING(ft_printf("[%-9000s] [%+05d] [%#10x] [%.3s] [%5000d]\n", big, 42, 255u, "abcdef", 7));
+	EACH_MALLOC_FAILING(ft_printf("[%+05d] [%-5s] [%.2x]\n", -42, "hi", 255u));
+}
+
 int	main(void) {
 	silence_stdout();
+	leak_test_malloc_fail();
 	leak_test_flags_short();
 	leak_test_precision_truncate();
 	leak_test_precision_zero();

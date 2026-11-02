@@ -55,6 +55,8 @@ static void	precision_test(void) {
 	CHECK("[%.0d] [%.0d] [%.d] [%.d]", 0, 42, 0, 42);
 	CHECK("[%.0u] [%.0x] [%.0X]", 0u, 0u, 0u);
 	CHECK("[%.3s] [%.0s] [%.s] [%.10s]", "hello", "hello", "hello", "hi");
+	// NULL %s is undefined; "(null)" is the convention. Strict where every
+	// implementation of it agrees (precision >= 6), see ub_precision_test.
 	CHECK("[%.6s] [%.10s]", (char *)NULL, (char *)NULL);
 	CHECK("[%10.5d] [%-10.5d] [%10.3s] [%-10.3s]", 42, -42, "hello", "hello");
 	CHECK("[%15.12u] [%15.12x]", -1, -1);
