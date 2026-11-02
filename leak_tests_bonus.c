@@ -1,16 +1,4 @@
 #include "printf_fairy.h"
-#include <stdlib.h>
-#include <fcntl.h>
-
-static void	redirect_stdout_to_null(void) {
-	int	fd = open("/dev/null", O_WRONLY);
-
-	if (fd < 0)
-		error_exit("printf-fairy: open /dev/null");
-	if (dup2(fd, 1) < 0)
-		error_exit("printf-fairy: dup2");
-	close(fd);
-}
 
 static void	leak_test_flags_short(void) {
 	ft_printf("%+05d %#10x %-5s\n", 42, 255, "hi");
@@ -31,14 +19,13 @@ static void	leak_test_huge_padding(void) {
 static void	leak_test_huge_string_with_width(void) {
 	char	big[8192];
 
-	for (size_t i = 0; i < sizeof(big) - 1; i++)
-		big[i] = 'b';
-	big[sizeof(big) - 1] = 0;
+	memset(big, 'b', sizeof(big) - 1);
+	big[sizeof(big) - 1] = '\0';
 	ft_printf("[%-9000s]\n", big);
 }
 
 int	main(void) {
-	redirect_stdout_to_null();
+	silence_stdout();
 	leak_test_flags_short();
 	leak_test_precision_truncate();
 	leak_test_precision_zero();

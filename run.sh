@@ -7,6 +7,7 @@ GREEN="\033[0;32m"
 PINK='\033[0;95m'
 YELLOW="\033[0;33m"
 RESET="\033[0m"
+BAR="════════════════════════════════════════"
 
 VERBOSE=0
 if [[ "${1:-}" == "-v" || "${1:-}" == "--verbose" ]]; then
@@ -15,18 +16,19 @@ fi
 
 TESTER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$( cd "$TESTER_DIR/.." && pwd )"
-TMP_DIR="/tmp/printf_fairy_$$"
-
-mkdir -p "$TMP_DIR"
+TMP_DIR=$(mktemp -d /tmp/printf_fairy.XXXXXX) || exit 1
 
 cd "$PROJECT_DIR" || exit 1
 
 TESTER_NAME=$(basename "$TESTER_DIR")
 
+FAILED=0
+COMPLETED=0
+
 # ---- alignment helpers ------------------------------------------------------
 COL=33
 ok()   { printf "\033[${COL}G  Done\n"; }
-fail() { printf "\033[${COL}G${RED}Failed${RESET}\n"; }
+fail() { FAILED=1; printf "\033[${COL}G${RED}Failed${RESET}\n"; }
 
 cleanup() {
     echo ""
@@ -38,12 +40,10 @@ cleanup() {
 }
 
 print_result() {
+    # Interrupted before the end with nothing failed yet: no verdict.
+    [[ $FAILED -eq 0 && $COMPLETED -eq 0 ]] && return
     echo ""
-    if [[ $NORM_TEST_RES -eq 0 && $PROTO_TEST_RES -eq 0 && $MAKE_ERRORS -eq 0 \
-        && $BASIC_BUILD_ERRORS -eq 0 && -z "$EXTERN_ERRORS" && $TEST_BUILD_ERRORS -eq 0 \
-        && $BASIC_RC -eq 0 && $LEAK_RC -eq 0 && $BONUS_BUILD_ERRORS -eq 0 \
-        && $BONUS_TEST_BUILD_ERRORS -eq 0 && $BONUS_BASIC_RC -eq 0 \
-        && $BONUS_LEAK_RC -eq 0 ]]; then
+    if [[ $FAILED -eq 0 ]]; then
         echo -e "${GREEN}╔════════════════════════════════════╗${RESET}"
         echo -e "${GREEN}║         OH MY, YOU PASSED!         ║${RESET}"
         echo -e "${GREEN}╚════════════════════════════════════╝${RESET}"
@@ -54,21 +54,8 @@ print_result() {
     fi
 }
 
-trap 'print_result; cleanup' EXIT INT TERM
-
-NORM_TEST_RES=0
-BONUS_VERSION=0
-PROTO_TEST_RES=0
-MAKE_ERRORS=0
-BASIC_BUILD_ERRORS=0
-EXTERN_ERRORS=""
-TEST_BUILD_ERRORS=0
-BASIC_RC=0
-LEAK_RC=0
-BONUS_BUILD_ERRORS=0
-BONUS_TEST_BUILD_ERRORS=0
-BONUS_BASIC_RC=0
-BONUS_LEAK_RC=0
+trap 'print_result; cleanup' EXIT
+trap 'exit 130' INT TERM
 
 echo ""
 echo -e "${PINK}╔════════════════════════════════════╗${RESET}"
@@ -79,21 +66,21 @@ echo
 printf "📝 Checking norm..."
 NORM_OUTPUT=$(find . -type d -name "$TESTER_NAME" -prune -o \
     \( -name "*.c" -o -name "*.h" \) -type f -print | xargs -r norminette 2>&1)
-if echo "$NORM_OUTPUT" | grep -q "Error"; then
-    NORM_TEST_RES=1
-    fail
-    echo ""
-    echo "$NORM_OUTPUT" | grep "Error"
-    echo ""
-else
-    ok
-fi
+case $? in
+    0)   ok ;;
+    127) printf "\033[32G${YELLOW}Skipped${RESET}\n\nnorminette not found\n\n" ;;
+    *)   fail
+         echo ""
+         echo "$NORM_OUTPUT" | grep -Ev 'OK!$|^Setting locale'
+         echo "" ;;
+esac
 
 printf "🔖 Checking version..."
-if grep -qi "bonus:" Makefile; then
+if grep -Eqs '^bonus[[:space:]]*:' Makefile; then
     BONUS_VERSION=1
     printf "\033[34GBonus\n"
 else
+    BONUS_VERSION=0
     printf "\033[30G${YELLOW}Mandatory${RESET}\n"
 fi
 
@@ -101,11 +88,11 @@ printf "📋 Checking prototype..."
 PROTO_REGEX='(^|[^_[:alnum:]])int[[:space:]]+ft_printf[[:space:]]*\([[:space:]]*'
 PROTO_REGEX+='const[[:space:]]+char[[:space:]]*\*[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?'
 PROTO_REGEX+='[[:space:]]*,[[:space:]]*\.\.\.[[:space:]]*\)'
+# -z: a prototype split over several lines still matches.
 PROTO_HITS=$(find . -type d -name "$TESTER_NAME" -prune -o \
     -name "*.h" -type f -print \
-    | xargs -r grep -lP "$PROTO_REGEX" 2>/dev/null)
+    | xargs -r grep -lzP "$PROTO_REGEX" 2>/dev/null)
 if [ -z "$PROTO_HITS" ]; then
-    PROTO_TEST_RES=1
     fail
     echo ""
     echo -e "Missing or malformed prototype, expected:\nint\tft_printf(const char *, ...)"
@@ -114,52 +101,54 @@ else
     ok
 fi
 
+# Succeeds if running `make <args>` again rewrites libftprintf.a. %y has
+# nanosecond precision: two quick builds often happen in the same second.
+relinks() {
+    local before
+    before=$(stat -c %y libftprintf.a 2>/dev/null)
+    make "$@" > /dev/null 2>&1
+    [[ "$(stat -c %y libftprintf.a 2>/dev/null)" != "$before" ]]
+}
+
 printf "⚙️  Checking Makefile..."
-MAKE_ISSUES=""
 if [ ! -f "Makefile" ]; then
     fail
     echo ""
     echo "No Makefile found!"
     exit 1
 fi
+MAKE_ISSUES=""
 if ! grep -Eq '(^|\s)cc(\s|$)' Makefile; then
-    ((MAKE_ERRORS++))
     MAKE_ISSUES+="Missing or incorrect compiler (should use 'cc')\n"
 fi
 for flag in -Wall -Wextra -Werror; do
     if ! grep -Fq -- "$flag" Makefile; then
-        ((MAKE_ERRORS++))
         MAKE_ISSUES+="Missing compilation flag: $flag\n"
     fi
 done
 for rule in all clean fclean re; do
     if ! grep -Eq "^$rule\s*:" Makefile; then
-        ((MAKE_ERRORS++))
         MAKE_ISSUES+="Missing rule: $rule\n"
     fi
 done
-if ! grep -Eq '^\$\(NAME\)\s*:' Makefile; then
-    ((MAKE_ERRORS++))
+if ! grep -Eq '^\$[({]NAME[)}]\s*:' Makefile; then
     MAKE_ISSUES+="Missing rule: \$(NAME)\n"
 fi
-if [[ $BONUS_VERSION -eq 1 ]] && ! grep -Eq "^bonus:" Makefile; then
-    ((MAKE_ERRORS++))
-    MAKE_ISSUES+="Bonus files present but no 'bonus' rule in Makefile\n"
-fi
-if grep -Eq '\*\.c' Makefile || grep -Eq '\*\.o' Makefile; then
-    ((MAKE_ERRORS++))
+# Only variable definitions: `rm -f *.o` in a recipe is fine.
+if grep -Eq '\$\(wildcard|^[^#[:space:]][^#]*=[^#]*\*\.[co]\b' Makefile; then
     MAKE_ISSUES+="Forbidden wildcard inclusion detected (*.c or *.o)\n"
 fi
-make > /dev/null 2>&1 || true
-lib_file="libftprintf.a"
-timestamp_before=$(stat -c %Y "$lib_file" 2>/dev/null || echo 0)
-make > /dev/null 2>&1 || true
-timestamp_after=$(stat -c %Y "$lib_file" 2>/dev/null || echo 0)
-if [ "$timestamp_after" -ne "$timestamp_before" ]; then
-    ((MAKE_ERRORS++))
+make > /dev/null 2>&1
+if relinks; then
     MAKE_ISSUES+="Unnecessary relink detected when running make twice\n"
 fi
-if [ $MAKE_ERRORS -eq 0 ]; then
+if [[ $BONUS_VERSION -eq 1 ]]; then
+    make bonus > /dev/null 2>&1
+    if relinks bonus; then
+        MAKE_ISSUES+="Unnecessary relink detected when running make bonus twice\n"
+    fi
+fi
+if [[ -z "$MAKE_ISSUES" ]]; then
     ok
 else
     fail
@@ -167,62 +156,29 @@ else
     echo -e "$MAKE_ISSUES"
 fi
 
-printf "📦 Building ft_printf..."
-BUILD_ISSUES=""
-MAKE_OUTPUT=$(make re 2>&1)
-if [ $? -ne 0 ]; then
-    ((BASIC_BUILD_ERRORS++))
-    BUILD_ISSUES+="Command 'make re' failed:\n$MAKE_OUTPUT\n"
-fi
-if [ ! -f "libftprintf.a" ]; then
-    ((BASIC_BUILD_ERRORS++))
-    BUILD_ISSUES+="File 'libftprintf.a' was not produced.\n"
-fi
-if [ $BASIC_BUILD_ERRORS -eq 0 ]; then
-    ok
-else
+# memset/memcpy may be emitted by the compiler (clang) for struct copies or
+# initialisation, __stack_chk_fail by gcc's stack protector. va_* are builtins.
+EXTERN_ALLOWED='malloc|free|write|memset|memcpy|__stack_chk_fail'
+
+# Reads the archive itself, so objects built in subfolders are checked too.
+check_externals() {
+    local forbidden
+    forbidden=$(comm -23 \
+        <(nm -u libftprintf.a 2>/dev/null | awk '$1 == "U" {print $2}' | sort -u) \
+        <(nm --defined-only libftprintf.a 2>/dev/null | awk 'NF == 3 {print $3}' | sort -u) \
+        | grep -vxE "$EXTERN_ALLOWED")
+    if [[ -z "$forbidden" ]]; then
+        ok
+        return
+    fi
     fail
     echo ""
-    echo -e "$BUILD_ISSUES"
-    exit 1
-fi
-
-printf "🔍 Checking externals..."
-EXTERN_ALLOWED="malloc free write memset memcpy"
-EXTERN_ERRORS=""
-DEFINED_SYMS=""
-collect_defined_syms() {
-    DEFINED_SYMS=" $(for o in *.o; do
-        [[ -f "$o" ]] && nm --defined-only "$o" 2>/dev/null | awk '{print $NF}'
-    done | sort -u | tr '\n' ' ') "
-}
-check_obj() {
-    local obj=$1
-    local forbidden=""
-    for ext in $(nm -u "$obj" 2>/dev/null | awk '{print $2}'); do
-        [[ "$ext" == ft_* || "$ext" == __* ]] && continue
-        [[ " $EXTERN_ALLOWED " =~ " $ext " ]] && continue
-        [[ "$DEFINED_SYMS" == *" $ext "* ]] && continue
-        forbidden="$forbidden $ext"
-    done
-    [[ -n "$forbidden" ]] && echo "$(basename "$obj" .o): forbidden:$forbidden"
-}
-collect_defined_syms
-for obj in *.o; do
-    [[ -f "$obj" ]] || continue
-    result=$(check_obj "$obj")
-    [[ -n "$result" ]] && EXTERN_ERRORS="$EXTERN_ERRORS$result\n"
-done
-if [[ -z "$EXTERN_ERRORS" ]]; then
-    ok
-else
-    fail
+    echo "Forbidden function(s):"
+    nm -A -u libftprintf.a 2>/dev/null | grep -wF "$forbidden" \
+        | awk '{sub(/^libftprintf\.a:/, "", $1); print "  " $1, $NF}'
     echo ""
-    echo -e "$EXTERN_ERRORS"
-    echo ""
-fi
+}
 
-printf "🔨 Building tests..."
 CFLAGS="-Wall -Wextra -Wno-format -I."
 for h in $PROTO_HITS; do
     dir=$(dirname "$h")
@@ -232,116 +188,73 @@ for h in $PROTO_HITS; do
     esac
 done
 PROTO_HEADER=$(echo "$PROTO_HITS" | head -1)
-CFLAGS="$CFLAGS -include $PROTO_HEADER"
-LDFLAGS="-L. -lftprintf"
-WRAP_FLAGS="-Wl,--wrap=malloc"
-BUILD_ISSUES=""
+[[ -n "$PROTO_HEADER" ]] && CFLAGS="$CFLAGS -include $PROTO_HEADER"
+LDFLAGS="-L. -lftprintf -Wl,--wrap=malloc"
 
 compile_test() {
-    local src=$1
-    local out=$2
-    local err=$3
-    cc $CFLAGS -DVERBOSE=$VERBOSE "$src" "$TESTER_NAME/utils.c" -o "$out" $WRAP_FLAGS $LDFLAGS 2> "$err" || return 1
+    cc $CFLAGS -DVERBOSE=$VERBOSE "$TESTER_NAME/$1.c" "$TESTER_NAME/utils.c" \
+        -o "$TMP_DIR/$1" $LDFLAGS 2> "$TMP_DIR/$1.err"
 }
 
-compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test" "$TMP_DIR/basic_build.err" \
-    || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="basic_tests compilation failed:\n$(cat "$TMP_DIR/basic_build.err")\n"; }
-compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test" "$TMP_DIR/leak_build.err" \
-    || { TEST_BUILD_ERRORS=1; BUILD_ISSUES+="leak_tests compilation failed:\n$(cat "$TMP_DIR/leak_build.err")\n"; }
+# run_phase <step prefix> <make args> <tests...>
+# Builds the library, checks its symbols, then builds and runs each test
+# (leak_* ones under valgrind). Stops the run if something does not build.
+run_phase() {
+    local prefix=$1 make_args=$2 out t issues="" failed=" "
+    shift 2
 
-if [ $TEST_BUILD_ERRORS -eq 0 ]; then
-    ok
-else
-    fail
-    echo -e "$BUILD_ISSUES"
-    exit 1
-fi
-
-printf "🧪 Running tests..."
-basic_log="$TMP_DIR/basic.log"
-leak_log="$TMP_DIR/leak.log"
-
-"$TMP_DIR/basic_test" > "$basic_log" 2>&1
-BASIC_RC=$?
-valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
-    --error-exitcode=42 --track-origins=yes \
-    "$TMP_DIR/leak_test" >/dev/null 2>"$leak_log"
-LEAK_RC=$?
-
-if [[ $BASIC_RC -eq 0 && $LEAK_RC -eq 0 ]]; then
-    ok
-else
-    fail
-fi
-[[ $BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$basic_log")"
-[[ $LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (mandatory)\n════════════════════════════════════════\n$(cat "$leak_log")"
-
-if [[ $BONUS_VERSION -eq 1 ]]; then
-    printf "📦 Building bonus ft_printf..."
-    MAKE_OUTPUT=$(make re bonus 2>&1)
-    if [ $? -ne 0 ]; then
-        BONUS_BUILD_ERRORS=1
+    printf "📦 Building %sft_printf..." "$prefix"
+    out=$(make $make_args 2>&1)
+    if [[ $? -ne 0 || ! -f libftprintf.a ]]; then
         fail
+        printf "\n%s\n" "$out"
+        [[ -f libftprintf.a ]] || echo "File 'libftprintf.a' was not produced."
         exit 1
-    else
-        ok
     fi
+    ok
 
-    printf "🔍 Checking bonus externals..."
-    BONUS_EXTERN_ERRORS=""
-    collect_defined_syms
-    for obj in *.o; do
-        [[ -f "$obj" ]] || continue
-        result=$(check_obj "$obj")
-        [[ -n "$result" ]] && BONUS_EXTERN_ERRORS="$BONUS_EXTERN_ERRORS$result\n"
+    printf "🔍 Checking %sexternals..." "$prefix"
+    check_externals
+
+    printf "🔨 Building %stests..." "$prefix"
+    for t in "$@"; do
+        compile_test "$t" \
+            || issues+="$t compilation failed:"$'\n'"$(cat "$TMP_DIR/$t.err")"$'\n'
     done
-    if [[ -z "$BONUS_EXTERN_ERRORS" ]]; then
-        ok
-    else
+    if [[ -n "$issues" ]]; then
         fail
-        echo ""
-        echo -e "$BONUS_EXTERN_ERRORS"
-        EXTERN_ERRORS="${EXTERN_ERRORS}${BONUS_EXTERN_ERRORS}"
-    fi
-
-    printf "🔨 Building bonus tests..."
-    compile_test "$TESTER_NAME/basic_tests.c" "$TMP_DIR/basic_test_re" "$TMP_DIR/basic_re_build.err" \
-        || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/leak_tests.c" "$TMP_DIR/leak_test_re" "$TMP_DIR/leak_re_build.err" \
-        || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/basic_tests_bonus.c" "$TMP_DIR/basic_test_bonus" "$TMP_DIR/basic_bonus_build.err" \
-        || BONUS_TEST_BUILD_ERRORS=1
-    compile_test "$TESTER_NAME/leak_tests_bonus.c" "$TMP_DIR/leak_test_bonus" "$TMP_DIR/leak_bonus_build.err" \
-        || BONUS_TEST_BUILD_ERRORS=1
-    if [ $BONUS_TEST_BUILD_ERRORS -eq 0 ]; then
-        ok
-    else
-        fail
+        printf "\n%s\n" "$issues"
         exit 1
     fi
+    ok
 
-    printf "🧪 Running bonus tests..."
-    bonus_basic_log="$TMP_DIR/basic_bonus.log"
-    bonus_leak_log="$TMP_DIR/leak_bonus.log"
-    "$TMP_DIR/basic_test_re" > "$bonus_basic_log" 2>&1
-    BONUS_BASIC_RC=$?
-    "$TMP_DIR/basic_test_bonus" >> "$bonus_basic_log" 2>&1
-    BONUS_BASIC_RC=$((BONUS_BASIC_RC + $?))
-    valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
-        --error-exitcode=42 --track-origins=yes \
-        "$TMP_DIR/leak_test_re" >/dev/null 2>"$bonus_leak_log"
-    BONUS_LEAK_RC=$?
-    valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all \
-        --error-exitcode=42 --track-origins=yes \
-        "$TMP_DIR/leak_test_bonus" >/dev/null 2>>"$bonus_leak_log"
-    BONUS_LEAK_RC=$((BONUS_LEAK_RC + $?))
-    if [[ $BONUS_BASIC_RC -eq 0 && $BONUS_LEAK_RC -eq 0 ]]; then
+    printf "🧪 Running %stests..." "$prefix"
+    for t in "$@"; do
+        if [[ $t == leak_* ]]; then
+            timeout 60 valgrind --leak-check=full --show-leak-kinds=all \
+                --errors-for-leak-kinds=all --error-exitcode=42 --track-origins=yes \
+                "$TMP_DIR/$t" > /dev/null 2> "$TMP_DIR/$t.log"
+        else
+            "$TMP_DIR/$t" > "$TMP_DIR/$t.log" 2>&1
+        fi || failed+="$t "
+    done
+    if [[ $failed == " " ]]; then
         ok
     else
         fail
     fi
-    [[ $BONUS_BASIC_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "$(cat "$bonus_basic_log")"
-    [[ $BONUS_LEAK_RC -ne 0 || $VERBOSE -eq 1 ]] && echo -e "\n════════════════════════════════════════\nVALGRIND OUTPUT (bonus)\n════════════════════════════════════════\n$(cat "$bonus_leak_log")"
+    for t in "$@"; do
+        [[ $VERBOSE -eq 1 || $failed == *" $t "* ]] || continue
+        [[ $t == leak_* ]] && printf "\n%s\nVALGRIND OUTPUT (%s)\n%s\n" "$BAR" "$t" "$BAR"
+        cat "$TMP_DIR/$t.log"
+    done
+}
+
+run_phase "" "re" basic_tests leak_tests
+if [[ $BONUS_VERSION -eq 1 ]]; then
+    # Mandatory tests run again: the bonus build may reimplement conversions.
+    run_phase "bonus " "re bonus" basic_tests basic_tests_bonus leak_tests leak_tests_bonus
 fi
 
-exit 0
+COMPLETED=1
+exit "$FAILED"

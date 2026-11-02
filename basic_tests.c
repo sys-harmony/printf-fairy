@@ -1,446 +1,299 @@
 #include "printf_fairy.h"
 #include <limits.h>
-#include <stdlib.h>
-#include <fcntl.h>
-
-#ifndef VERBOSE
-# define VERBOSE 0
-#endif
 
 /* ************************************************************************** */
 /*                              ft_printf %c                                  */
 /* ************************************************************************** */
 
 static void	c_basic_test(void) {
-	if (!COMPARE("[%c]", 'A'))
-		abort();
+	CHECK("[%c]", 'A');
 }
 
 static void	c_null_byte_test(void) {
-	if (!COMPARE("[%c]", '\0'))
-		abort();
+	CHECK("[%c]", '\0');
+	CHECK("%c%c%c", 'a', '\0', 'b');
 }
 
 static void	c_low_ascii_test(void) {
-	if (!COMPARE("[%c]", 1) || !COMPARE("[%c]", 31))
-		abort();
+	CHECK("[%c]", 1);
+	CHECK("[%c]", 31);
 }
 
 static void	c_high_ascii_test(void) {
-	if (!COMPARE("[%c]", 127))
-		abort();
+	CHECK("[%c]", 127);
 }
 
-static void	test_c(void) {
-	const char		*tests[] = {
-		"basic",
-		"null byte",
-		"low ASCII",
-		"high ASCII"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(c_basic_test),
-		!forked_test(c_null_byte_test),
-		!forked_test(c_low_ascii_test),
-		!forked_test(c_high_ascii_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %c", num_tests, tests, passed);
-}
+static const t_test	g_c_tests[] = {
+	{"basic", c_basic_test},
+	{"null byte", c_null_byte_test},
+	{"low ASCII", c_low_ascii_test},
+	{"high ASCII", c_high_ascii_test},
+};
 
 /* ************************************************************************** */
 /*                              ft_printf %s                                  */
 /* ************************************************************************** */
 
 static void	s_basic_test(void) {
-	if (!COMPARE("[%s]", "hello"))
-		abort();
+	CHECK("[%s]", "hello");
 }
 
 static void	s_empty_test(void) {
-	if (!COMPARE("[%s]", ""))
-		abort();
+	CHECK("[%s]", "");
 }
 
 static void	s_null_test(void) {
-	if (!COMPARE("[%s]", (char *)NULL))
-		abort();
+	CHECK("[%s]", (char *)NULL);
 }
 
 static void	s_long_test(void) {
-	if (!COMPARE("[%s]", "abcdefghijklmnopqrstuvwxyz0123456789"))
-		abort();
+	CHECK("[%s]", "abcdefghijklmnopqrstuvwxyz0123456789");
 }
 
-static void	test_s(void) {
-	const char		*tests[] = {
-		"basic",
-		"empty",
-		"NULL",
-		"long string"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(s_basic_test),
-		!forked_test(s_empty_test),
-		!forked_test(s_null_test),
-		!forked_test(s_long_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %s", num_tests, tests, passed);
-}
+static const t_test	g_s_tests[] = {
+	{"basic", s_basic_test},
+	{"empty", s_empty_test},
+	{"NULL", s_null_test},
+	{"long string", s_long_test},
+};
 
 /* ************************************************************************** */
 /*                              ft_printf %p                                  */
 /* ************************************************************************** */
 
 static void	p_null_test(void) {
-	if (!COMPARE("[%p]", (void *)NULL))
-		abort();
+	CHECK("[%p]", (void *)NULL);
 }
 
 static void	p_small_test(void) {
-	if (!COMPARE("[%p]", (void *)0x42))
-		abort();
+	CHECK("[%p]", (void *)0x42);
 }
 
 static void	p_large_test(void) {
-	if (!COMPARE("[%p]", (void *)0xdeadbeef))
-		abort();
+	CHECK("[%p]", (void *)0xdeadbeef);
 }
 
 static void	p_stack_test(void) {
 	int	x = 0;
-	if (!COMPARE("[%p]", (void *)&x))
-		abort();
+
+	CHECK("[%p]", (void *)&x);
 }
 
-static void	test_p(void) {
-	const char		*tests[] = {
-		"NULL",
-		"small address",
-		"large address",
-		"stack address"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(p_null_test),
-		!forked_test(p_small_test),
-		!forked_test(p_large_test),
-		!forked_test(p_stack_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %p", num_tests, tests, passed);
+// Top bit set: catches pointers printed through a signed long ("0x-1").
+static void	p_extremes_test(void) {
+	CHECK("[%p]", (void *)-1);
+	CHECK("[%p]", (void *)LONG_MIN);
+	CHECK("[%p]", (void *)LONG_MAX);
 }
+
+static const t_test	g_p_tests[] = {
+	{"NULL", p_null_test},
+	{"small address", p_small_test},
+	{"large address", p_large_test},
+	{"stack address", p_stack_test},
+	{"extremes (-1, LONG_MIN, LONG_MAX)", p_extremes_test},
+};
 
 /* ************************************************************************** */
 /*                            ft_printf %d / %i                               */
 /* ************************************************************************** */
 
 static void	d_zero_test(void) {
-	if (!COMPARE("[%d]", 0))
-		abort();
+	CHECK("[%d]", 0);
 }
 
 static void	d_positive_test(void) {
-	if (!COMPARE("[%d]", 42))
-		abort();
+	CHECK("[%d]", 42);
 }
 
 static void	d_negative_test(void) {
-	if (!COMPARE("[%d]", -42))
-		abort();
+	CHECK("[%d]", -42);
 }
 
 static void	d_int_max_test(void) {
-	if (!COMPARE("[%d]", INT_MAX))
-		abort();
+	CHECK("[%d]", INT_MAX);
 }
 
 static void	d_int_min_test(void) {
-	if (!COMPARE("[%d]", INT_MIN))
-		abort();
+	CHECK("[%d]", INT_MIN);
 }
 
 static void	i_basic_test(void) {
-	if (!COMPARE("[%i]", -42) || !COMPARE("[%i]", 0))
-		abort();
+	CHECK("[%i]", -42);
+	CHECK("[%i]", 0);
 }
 
-static void	test_d_i(void) {
-	const char		*tests[] = {
-		"d zero",
-		"d positive",
-		"d negative",
-		"d INT_MAX",
-		"d INT_MIN",
-		"i basic"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(d_zero_test),
-		!forked_test(d_positive_test),
-		!forked_test(d_negative_test),
-		!forked_test(d_int_max_test),
-		!forked_test(d_int_min_test),
-		!forked_test(i_basic_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %d / %i", num_tests, tests, passed);
-}
+static const t_test	g_d_i_tests[] = {
+	{"d zero", d_zero_test},
+	{"d positive", d_positive_test},
+	{"d negative", d_negative_test},
+	{"d INT_MAX", d_int_max_test},
+	{"d INT_MIN", d_int_min_test},
+	{"i basic", i_basic_test},
+};
 
 /* ************************************************************************** */
 /*                              ft_printf %u                                  */
 /* ************************************************************************** */
 
 static void	u_zero_test(void) {
-	if (!COMPARE("[%u]", 0u))
-		abort();
+	CHECK("[%u]", 0u);
 }
 
 static void	u_positive_test(void) {
-	if (!COMPARE("[%u]", 42u))
-		abort();
+	CHECK("[%u]", 42u);
 }
 
 static void	u_uint_max_test(void) {
-	if (!COMPARE("[%u]", UINT_MAX))
-		abort();
+	CHECK("[%u]", UINT_MAX);
 }
 
 static void	u_negative_arg_test(void) {
-	if (!COMPARE("[%u]", -1) || !COMPARE("[%u]", INT_MIN))
-		abort();
+	CHECK("[%u]", -1);
+	CHECK("[%u]", INT_MIN);
 }
 
-static void	test_u(void) {
-	const char		*tests[] = {
-		"zero",
-		"positive",
-		"UINT_MAX",
-		"negative arg"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(u_zero_test),
-		!forked_test(u_positive_test),
-		!forked_test(u_uint_max_test),
-		!forked_test(u_negative_arg_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %u", num_tests, tests, passed);
-}
+static const t_test	g_u_tests[] = {
+	{"zero", u_zero_test},
+	{"positive", u_positive_test},
+	{"UINT_MAX", u_uint_max_test},
+	{"negative arg", u_negative_arg_test},
+};
 
 /* ************************************************************************** */
 /*                            ft_printf %x / %X                               */
 /* ************************************************************************** */
 
 static void	x_zero_test(void) {
-	if (!COMPARE("[%x]", 0) || !COMPARE("[%X]", 0))
-		abort();
+	CHECK("[%x]", 0);
+	CHECK("[%X]", 0);
 }
 
 static void	x_basic_test(void) {
-	if (!COMPARE("[%x]", 255) || !COMPARE("[%X]", 255))
-		abort();
+	CHECK("[%x]", 255);
+	CHECK("[%X]", 255);
 }
 
 static void	x_uint_max_test(void) {
-	if (!COMPARE("[%x]", UINT_MAX) || !COMPARE("[%X]", UINT_MAX))
-		abort();
+	CHECK("[%x]", UINT_MAX);
+	CHECK("[%X]", UINT_MAX);
 }
 
 static void	x_negative_arg_test(void) {
-	if (!COMPARE("[%x]", -1) || !COMPARE("[%X]", INT_MIN))
-		abort();
+	CHECK("[%x]", -1);
+	CHECK("[%X]", INT_MIN);
 }
 
 static void	x_mixed_case_test(void) {
-	if (!COMPARE("%x %X", 0xabcdef, 0xabcdef))
-		abort();
+	CHECK("%x %X", 0xabcdef, 0xabcdef);
 }
 
-static void	test_x_X(void) {
-	const char		*tests[] = {
-		"zero",
-		"basic 255",
-		"UINT_MAX",
-		"negative arg",
-		"mixed lower/upper"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(x_zero_test),
-		!forked_test(x_basic_test),
-		!forked_test(x_uint_max_test),
-		!forked_test(x_negative_arg_test),
-		!forked_test(x_mixed_case_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %x / %X", num_tests, tests, passed);
-}
+static const t_test	g_x_tests[] = {
+	{"zero", x_zero_test},
+	{"basic 255", x_basic_test},
+	{"UINT_MAX", x_uint_max_test},
+	{"negative arg", x_negative_arg_test},
+	{"mixed lower/upper", x_mixed_case_test},
+};
 
 /* ************************************************************************** */
 /*                              ft_printf %%                                  */
 /* ************************************************************************** */
 
 static void	percent_basic_test(void) {
-	if (!COMPARE("[%%]"))
-		abort();
+	CHECK("[%%]");
 }
 
 static void	percent_mixed_test(void) {
-	if (!COMPARE("100%% done"))
-		abort();
+	CHECK("100%% done");
 }
 
 static void	percent_consecutive_test(void) {
-	if (!COMPARE("%%%%"))
-		abort();
+	CHECK("%%%%");
 }
 
-static void	test_percent(void) {
-	const char		*tests[] = {
-		"basic",
-		"with text",
-		"consecutive"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(percent_basic_test),
-		!forked_test(percent_mixed_test),
-		!forked_test(percent_consecutive_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf %%", num_tests, tests, passed);
-}
+static const t_test	g_percent_tests[] = {
+	{"basic", percent_basic_test},
+	{"with text", percent_mixed_test},
+	{"consecutive", percent_consecutive_test},
+};
 
 /* ************************************************************************** */
 /*                                Mix tests                                   */
 /* ************************************************************************** */
 
 static void	mix_simple_test(void) {
-	if (!COMPARE("%s = %d", "answer", 42))
-		abort();
+	CHECK("%s = %d", "answer", 42);
 }
 
 static void	mix_all_types_test(void) {
-	if (!COMPARE("c=%c s=%s d=%d x=%x p=%p",
-			'X', "hi", -1, 0xff, (void *)0x42))
-		abort();
+	CHECK("c=%c s=%s d=%d x=%x p=%p", 'X', "hi", -1, 0xff, (void *)0x42);
 }
 
 static void	mix_no_format_test(void) {
-	if (!COMPARE("just plain text"))
-		abort();
+	CHECK("just plain text");
 }
 
 static void	mix_only_newlines_test(void) {
-	if (!COMPARE("\n\n\n"))
-		abort();
+	CHECK("\n\n\n");
 }
 
-static void	test_mix(void) {
-	const char		*tests[] = {
-		"simple",
-		"all types",
-		"no format",
-		"only newlines"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(mix_simple_test),
-		!forked_test(mix_all_types_test),
-		!forked_test(mix_no_format_test),
-		!forked_test(mix_only_newlines_test)
-	};
-
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf mix", num_tests, tests, passed);
-}
+static const t_test	g_mix_tests[] = {
+	{"simple", mix_simple_test},
+	{"all types", mix_all_types_test},
+	{"no format", mix_no_format_test},
+	{"only newlines", mix_only_newlines_test},
+};
 
 /* ************************************************************************** */
-/*                          ft_printf return value                            */
+/*                              robustness                                    */
 /* ************************************************************************** */
 
 /*
- * On a broken fd (here fd 1 is closed), the real printf detects the write failure
- * and returns -1, even when the output is empty (a 0-byte write on an invalid
- * fd returns -1). These tests run in a forked process: stdout is closed,
- * so we can't print anything in the child process — abort() on failure
- * is enough, the parent (with stdout intact) prints the result.
+ * With stdout closed, an unbuffered printf("hello world") returns -1: since
+ * ft_printf writes directly (no buffer management), it must do the same.
+ * Empty output is not tested: glibc returns 0 there, as nothing is written.
  */
-
-static void	ret_broken_fd_empty_test(void) {
-	close(1);
-	if (ft_printf("") != -1)
-		abort();
-}
-
-static void	ret_broken_fd_empty_str_test(void) {
-	close(1);
-	if (ft_printf("%s", "") != -1)
-		abort();
-}
-
-static void	ret_broken_fd_text_test(void) {
-	close(1);
-	if (ft_printf("hello world") != -1)
-		abort();
-}
-
-static void	ret_normal_test(void) {
-	int	saved;
-	int	devnull;
+static void	ret_broken_fd_test(void) {
 	int	ret;
 
-	saved = dup(1);
-	devnull = open("/dev/null", 1);
-	dup2(devnull, 1);
-	close(devnull);
-	ret = ft_printf("abc%d", 42);
-	dup2(saved, 1);
-	close(saved);
-	if (ret != 5)
-		abort();
+	close(STDOUT_FILENO);
+	ret = ft_printf("hello world");
+	if (ret != -1)
+		test_fail("      returned %d with stdout closed, expected -1", ret);
 }
 
-static void	test_return_value(void) {
-	const char		*tests[] = {
-		"empty output on broken fd",
-		"empty %s on broken fd",
-		"text on broken fd",
-		"normal output count"
-	};
-	const size_t	num_tests = ARRAY_SIZE(tests);
-	const int		passed[] = {
-		!forked_test(ret_broken_fd_empty_test),
-		!forked_test(ret_broken_fd_empty_str_test),
-		!forked_test(ret_broken_fd_text_test),
-		!forked_test(ret_normal_test)
-	};
+/*
+ * Makes the 1st, then 2nd, ... malloc fail: ft_printf may give up, but must
+ * not crash. Implementations that never call malloc pass trivially.
+ */
+static void	malloc_fail_test(void) {
+	char	big[10000];
 
-	if (!all_tests_passed(passed, num_tests) || VERBOSE)
-		print_test_results("ft_printf return value", num_tests, tests, passed);
+	memset(big, 'a', sizeof(big) - 1);
+	big[sizeof(big) - 1] = '\0';
+	silence_stdout();
+	g_malloc_wrap_enabled = 1;
+	for (g_malloc_fail_at = 1; g_malloc_fail_at <= 5; g_malloc_fail_at++) {
+		g_malloc_count = 0;
+		ft_printf("%s %d %s %p\n", big, 42, "x", (void *)big);
+	}
 }
+
+static const t_test	g_robustness_tests[] = {
+	{"-1 when stdout is closed", ret_broken_fd_test},
+	{"no crash when malloc fails", malloc_fail_test},
+};
 
 int	main(void) {
-	test_c();
-	test_s();
-	test_p();
-	test_d_i();
-	test_u();
-	test_x_X();
-	test_percent();
-	test_mix();
-	test_return_value();
-	return (g_tests_failed ? 1 : 0);
+	RUN_SECTION("ft_printf %c", g_c_tests);
+	RUN_SECTION("ft_printf %s", g_s_tests);
+	RUN_SECTION("ft_printf %p", g_p_tests);
+	RUN_SECTION("ft_printf %d / %i", g_d_i_tests);
+	RUN_SECTION("ft_printf %u", g_u_tests);
+	RUN_SECTION("ft_printf %x / %X", g_x_tests);
+	RUN_SECTION("ft_printf %%", g_percent_tests);
+	RUN_SECTION("ft_printf mix", g_mix_tests);
+	RUN_SECTION("ft_printf robustness", g_robustness_tests);
+	return (g_tests_failed != 0);
 }
