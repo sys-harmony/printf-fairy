@@ -1,309 +1,122 @@
 # 🧚 printf-fairy
 
-A comprehensive tester for 42's **ft_printf** project, featuring memory leak detection, edge case testing, and rigorous validation against the original `printf`.
+A tester for 42's **ft_printf** (subject v12.1). About 22,000 formats compared byte for byte with the real `printf`, return values included, plus every check the subject asks for, in about 1.5 seconds.
 
-## ✨ Features
+Part of a trio with [libft-fairy](https://github.com/sys-harmony/libft-fairy) and [gnl-fairy](https://github.com/sys-harmony/gnl-fairy): same display, same verdicts, same engine.
 
-- ✅ Complete tests for all conversions (mandatory + bonus)
-- 🔬 Byte-exact comparison with the real `printf` (output **and** return value)
-- 🩺 Every failure shows the format, the expected output and what you printed
-- ⏱️ Crashes and infinite loops are reported per test instead of killing the run
-- 🧹 Clean execution (automatic cleanup of temporary files)
-- 🔍 Automatic verification with **norminette**
-- 📋 Prototype validation in project headers
-- ⚙️ Makefile rules verification (NAME, all, clean, fclean, re, bonus, relink)
-- 🔧 Compilation flags check (-Wall -Wextra -Werror)
-- 🔎 External function usage verification
-- 💧 Memory leak detection with **Valgrind**
-- 🚨 Edge case testing (NULL, INT_MIN, UINT_MAX, null bytes, huge widths, malloc failure)
-- 📊 Clear and colorful output
-- 🔇 Optional verbose mode for detailed results
+## 🚀 Usage
 
-## 📋 Prerequisites
-
-Before using printf-fairy, make sure you have installed:
-
-- `cc` (with `--wrap` linker support, i.e. GNU ld)
-- `make`
-- `valgrind`
-- `norminette` (the norm step is skipped if it is missing)
-- `bash`
-- `nm` and `timeout` (usually pre-installed)
-
-## 🚀 Installation
-
-1. Clone the repository inside your ft_printf directory:
+Clone it inside your ft_printf repository, then run it:
 
 ```bash
 git clone https://github.com/sys-harmony/printf-fairy.git
+./printf-fairy/run.sh          # failing tests only
+./printf-fairy/run.sh -v       # every test
 ```
 
-2. Navigate to the tester folder:
-
-```bash
-cd printf-fairy
-```
-
-3. Make the script executable:
-
-```bash
-chmod +x run.sh
-```
-
-## 🎯 Usage
-
-### Run all tests
-
-```bash
-./run.sh
-```
-
-### Verbose mode (displays all tests, even passing ones)
-
-```bash
-./run.sh --verbose
-# or
-./run.sh -v
-```
+The exit status is `0` when everything passed (warnings included), `1` otherwise, so it fits in a script or a CI.
 
 ## 📊 Output
 
 ```
-╔════════════════════════════════════╗
-║           PRINTF-FAIRY 🧚          ║
-╚════════════════════════════════════╝
+╔════════════════════════════════════════════╗
+║              PRINTF-FAIRY 🧚               ║
+╚════════════════════════════════════════════╝
 
-📝 Checking norm...             Done
-🔖 Checking version...         Bonus
-📋 Checking prototype...        Done
-⚙️  Checking Makefile...        Done
-📦 Building ft_printf...        Done
-🔍 Checking externals...        Done
-🔨 Building tests...            Done
-🧪 Running tests...           Failed
+🔖 Version ............................. Bonus
+📂 Files ................................ Done
+📖 README ............................... Done
+📝 Norm ................................. Done
+📋 Prototype ............................ Done
+🔧 Makefile ............................. Done
+📦 Build ................................ Done
+🔍 External functions ................... Done
+🔨 Test build ........................... Done
+📦 Bonus build .......................... Done
+🔍 Bonus external functions ............. Done
+🔨 Bonus test build ..................... Done
+🧪 Tests .............................. Failed
 
-========================================
-ft_printf %c
-========================================
-[KO]  Test null byte
-      format:   "[%c]"
-      expected: "[\x00]" (ret 3)
-      got:      "[" (ret 3)
+── ft_printf conversions ─────────────────────
+[KO] %c, every byte from 0 to 255
+     ↳ format   "[%c]"
+       expected "[\x00]"  ret 3
+       got      "[]"  ret 2
+[KO] %p: NULL, top bit set, stack, heap
+     ↳ format   "[%p]"
+       expected "[0xffffffffffffffff]"  ret 20
+       got      "[0x-1]"  ret 6
+🧪 Bonus tests ......................... Done
+🧹 Cleanup .............................. Done
 
-========================================
-ft_printf %p
-========================================
-[KO]  Test extremes (-1, LONG_MIN, LONG_MAX)
-      format:   "[%p]"
-      expected: "[0xffffffffffffffff]" (ret 20)
-      got:      "[0x-1]" (ret 6)
-...
-
-╔════════════════════════════════════╗
-║        OH NO... YOU FAILED!        ║
-╚════════════════════════════════════╝
+╔════════════════════════════════════════════╗
+║            OH NO... YOU FAILED!            ║
+╚════════════════════════════════════════════╝
+   ✘ Tests · 2/49 tests failed · 1.37s
 ```
 
-By default only failed tests are listed, each with the format string, the expected output and yours (non-printable bytes shown as `\xHH`; long outputs are cut around the first difference). A crash shows the signal (`crashed: Segmentation fault`), an infinite loop shows `timeout after 5s`. Valgrind logs are displayed when a leak test fails. The script exits with status 1 when anything failed, so it can be used in scripts.
+Only what did not pass is listed, each time with its reason: the format, the bytes expected and the bytes written (non-printable ones as `\xHH`, long outputs cut around the first difference), a crash signal, a timeout, or the Valgrind report.
 
-## 🧪 Tests Covered
+## ⚖️ Failures and warnings
 
-### Pre-compilation Checks
+A **failure** is a bug or a clear subject violation. A **warning** is something debatable: worth a look, maybe a question from your evaluator, never a failure. A working ft_printf passes.
 
-- **Norminette**: Validates all .c and .h files (skipped with a warning if `norminette` is not installed)
-- **Prototype**: Verifies `int ft_printf(const char *, ...)` in any project header (`*.h`), even split over several lines
-- **Makefile**: Checks for required rules, proper compilation flags, wildcards in source lists, and that neither `make` nor `make bonus` relinks when run twice
-- **External functions**: Reads `libftprintf.a` itself (so objects built in `obj/` or `libft/` are checked too) and ensures only allowed symbols are left undefined: `malloc`, `free`, `write`, plus `memset`/`memcpy` (emitted by clang for struct copies) and `__stack_chk_fail` (gcc's stack protector); `va_*` are builtins and invisible to `nm`
+Warnings, for ft_printf:
 
-### Mandatory Conversions
+- a combination the C standard leaves undefined (flag `0` on `%s`, `+` on `%u`, a precision on `%p`, `%5%`...) that differs from glibc
+- a return value other than `-1` when stdout is closed (write errors are not in the subject)
+- a README that does not look like the subject's description
+- project files that git does not track, hence not graded
+- `norminette` or `valgrind` missing: that check did not run
 
-#### %c (character)
-- Basic ASCII
-- Null byte (`'\0'`), alone and between other characters
-- Low and high ASCII range
+## 🧪 What is checked
 
-#### %s (string)
-- Basic, empty, NULL
-- Long strings
+| Step | What |
+|---|---|
+| 🔖 Version | Bonus when the Makefile has a `bonus` rule |
+| 📂 Files | a Makefile and `ft_printf.h`; project files not committed (warning) |
+| 📖 README | there (failure), with the italic first line, *Description*, *Instructions*, *Resources*, how AI was used and the algorithm (warnings) |
+| 📝 Norm | `norminette` on every graded `.c` and `.h`, `libft/` included |
+| 📋 Prototype | the compiler checks `ft_printf.h` against `int ft_printf(const char *, ...)` |
+| 🔧 Makefile | `$(NAME)`, `all`, `clean`, `fclean`, `re`; `cc -Wall -Wextra -Werror` on every compilation `make -n` shows, sub-makes included; `ar`, no `libtool`; no wildcard |
+| 📦 Build | a build from scratch, then `make` again must not relink; same for `make bonus` |
+| 🔍 External functions | in `libftprintf.a` itself: `malloc`, `free`, `write` only. `memset`, `memcpy` and `__stack_chk_fail` the compiler emits on its own are allowed, unless written in the sources |
+| 🧪 Tests | below, against the mandatory build, then everything again against the bonus build |
 
-#### %p (pointer)
-- NULL, small addresses, large addresses, stack addresses
-- Extremes with the top bit set (`-1`, `LONG_MIN`, `LONG_MAX`), which catch pointers printed as signed numbers
+**Mandatory conversions:** `%c` for every byte from 0 to 255; `%s` with empty, whitespace, high bytes, a format inside, `NULL`, 3000 characters; `%p` with `NULL`, the top bit set, stack and heap addresses; `%d %i %u %x %X` swept over 0, ±1, powers of 10 and 16, `INT_MIN`, `UINT_MAX`, negative arguments; `%%`. Then formats: empty, text only, 5000 characters, every conversion at once, 20 in a row.
 
-#### %d / %i (signed decimal)
-- Zero, positive, negative
-- `INT_MAX`, `INT_MIN`
+**Robustness:** each `malloc` failing in turn (no crash allowed), stdout closed (warning).
 
-#### %u (unsigned decimal)
-- Zero, positive, `UINT_MAX`
-- Negative arguments (`-1`, `INT_MIN`), which must be read as unsigned
+**Bonus:** one test per classic pitfall (`0` ignored with `-` or a precision, `#` with 0, `+` beats space, `.0` on 0, `%10s` on `NULL`...), the undefined combinations (warnings), then **exhaustive sweeps**: every combination of 15 flag sets × 5 widths × 7 precisions × values, for each conversion. `defined()` sorts them: what the standard defines must match glibc, the rest only warns.
 
-#### %x / %X (hexadecimal)
-- Zero, basic values, `UINT_MAX`, negative arguments
-- Mixed lower/upper case
+**Leaks:** Valgrind on short, 8 KB, `NULL` and many-argument prints, huge widths and precisions; any leak, invalid access or uninitialised value fails.
 
-#### %% (percent sign)
-- Basic, with text, consecutive
+## 🔍 How it works
 
-#### Mix
-- Multiple conversions in one call
-- All types in one format
+- `CHECK(fmt, ...)` runs `ft_printf`, then `printf`, with the same arguments, captures what each writes to stdout through a pipe and compares the raw bytes, so a `'\0'` cannot end the comparison early, and the return values.
+- Every test runs in its own process with a timeout: a crash or an infinite loop fails that test only, and the remaining timeouts shrink to 1 second.
+- The mandatory tests run in the background while the bonus builds; norminette starts at once. Every core of the machine is used.
+- `-Wl,--wrap=malloc` routes the library's `malloc` through the tester, which can make the n-th one fail.
 
-#### Robustness
-- Text on a closed stdout: `ft_printf` must return `-1`, like an unbuffered `printf`. Empty output is not tested: glibc's `printf("")` returns `0` there, since nothing is written
-- Malloc failure: the 1st, then 2nd, ... `malloc` returns `NULL` (through `-Wl,--wrap=malloc`); `ft_printf` may give up but must not crash. Implementations that never call `malloc` pass as is
+## 📋 Requirements
 
-Every test also checks the return value against `printf`.
+Linux with `bash` 4.3+, `cc`, `make`, `nm`, `valgrind`, `norminette`, `perl` and coreutils. The reference is glibc's `printf` (`(nil)` for a `NULL` `%p`), as on 42's machines.
 
-### Bonus Flags
-
-#### Flag `-` (left-justify)
-- With every conversion type (`%c`, `%s`, `%d`, `%x`)
-
-#### Flag `0` (zero-pad)
-- Basic, with negative numbers, with `%x`
-- Correctly ignored when `-` or precision are present
-
-#### Flag `#` (alternate form)
-- Basic `0x`/`0X` prefix
-- Correctly omitted when value is zero
-- With width and zero-padding
-- With precision
-
-#### Flag ` ` (space)
-- With positive, negative, zero
-- Correctly overridden by `+`
-
-#### Flag `+` (force sign)
-- With positive, negative, zero
-- With zero-padding
-
-#### Width
-- Basic, too small (ignored), width 0
-- With strings
-- Huge width padding (1000 characters)
-
-#### Precision
-- Basic for `%d`
-- Precision 0 with n=0 (empty output)
-- String truncation
-- Precision longer than string
-- Width + precision combinations
-- Huge precision (`.40`)
-
-#### Combinations
-- All flags + width + precision
-- `-` + width + precision with `%s`
-- Repeated flags
-- Mixed format strings
-- Negative values as unsigned with width, precision and `#`
-
-#### Misc flags
-These follow glibc where the C standard leaves the behaviour undefined:
-- `%p` with width (`%20p`, `%-20p`) and zero-padding (`%010p`)
-- Flag `0` ignored for `%s`
-- `%s` NULL with width
-
-#### Exhaustive Cartesian Sweeps
-- Every flag × width × precision × value combination for `%d %i %u %x %X %c %s %p` (about 9,000 format strings), each conversion only with the flags it defines (no `+`/space on unsigned, `#` only on `x`/`X`, no precision on `%c`/`%p`), so a mismatch is always a real bug. `%c` includes `'\0'` with padding.
-
-### Memory Leak Tests
-
-Dedicated leak tests using **Valgrind** (any leak, invalid access or use of uninitialised memory fails):
-- Short prints
-- Long prints (8 KB), to cover implementations that switch to `malloc` past some buffer size
-- Many arguments
-- NULL pointers (`%s` with NULL, `%p` with NULL)
-
-For bonus:
-- Combined flags on short strings
-- Precision truncation
-- Precision = 0
-- Huge width padding (5000+ characters)
-- Huge strings with width
-
-## 📁 Project Structure
+## 📁 Structure
 
 ```
 printf-fairy/
-├── run.sh                    # Main test orchestrator
-├── basic_tests.c             # Mandatory conversion tests
-├── basic_tests_bonus.c       # Bonus flag/width/precision tests
-├── leak_tests.c              # Leak tests (mandatory paths)
-├── leak_tests_bonus.c        # Leak tests (bonus paths)
-├── utils.c                   # Capture, diff, forked runner, malloc wrapper
-├── printf_fairy.h            # CHECK() / SWEEP() macros, shared types
-└── README.md                 # This file
+├── run.sh               # the steps; its "fairy core" is shared by the trio
+├── utils.c              # capture, comparison, malloc wrapper; the C fairy core
+├── printf_fairy.h       # CHECK, CHECK_UB and SWEEP
+├── basic_tests.c        # mandatory conversions
+├── basic_tests_bonus.c  # flags, undefined combinations, sweeps
+├── leak_tests.c         # under Valgrind
+└── leak_tests_bonus.c   # under Valgrind, bonus paths
 ```
 
-## 🔍 Advanced Features
-
-### Direct comparison with libc printf
-
-`CHECK(fmt, ...)` runs your real `ft_printf` and the libc `printf` with the same arguments, captures what each one writes to stdout through a pipe, and compares the raw bytes (not C strings, so a `'\0'` printed by `%c` cannot hide the rest of the output) **and** the return values.
-
-### Forked tests
-
-Every test runs in its own process with a 5 second alarm, so a segfault or an infinite loop only fails that test, with the signal or the timeout reported under it.
-
-### Adding a test
-
-Write a function made of `CHECK()` calls and add it to its section's `t_test` table:
-
-```c
-static void	d_zero_test(void) {
-	CHECK("[%d]", 0);
-}
-
-static const t_test	g_d_i_tests[] = {
-	{"d zero", d_zero_test},
-	...
-};
-```
-
-### Mandatory tests re-run on the bonus build
-
-Many bonus implementations rewrite every conversion to support flags, so the mandatory conversion tests and leak tests are compiled and run a second time against the bonus library. A bug that only exists in the bonus code (e.g. `%c` with `'\0'`) is caught even when the mandatory build is green.
-
-### Malloc wrapper
-
-`-Wl,--wrap=malloc` routes your library's `malloc` calls through `__wrap_malloc`, which can make the Nth call return `NULL` (used by the malloc failure test).
-
-## 🐛 Debugging
-
-If a test fails:
-
-1. **Failure details**: each `[KO]` shows the format, the expected output and yours
-2. **Verbose mode**: Run `./run.sh -v` to also list passing tests
-3. **Valgrind logs**: Complete output displayed for memory issues
-4. **Norminette**: Specific errors shown with file and line
-5. **Build errors**: Printed on failure
-
-## ⚠️ Limitations
-
-- Tested only on Linux (uses `fork`, `nm`, Valgrind, and `--wrap` linker support)
-- Requires specific directory structure (tester in ft_printf subfolder)
-- The reference is glibc's `printf` (e.g. `(nil)` for a NULL `%p`), as on 42's Linux machines
-- `memset`/`memcpy` must be allowed because compilers emit them on their own, so a direct call to them is not detected
-- The `__attribute__((format))` in your `ft_printf.h` may emit warnings on intentionally invalid format strings; the tester uses `-Wno-format` to bypass this
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-
-- Open an issue to report a bug
-- Suggest new edge cases
-- Improve test coverage
-- Enhance documentation
-
-## 📜 License
-
-This project is free to use for educational purposes.
+Adding a test: write a function of `CHECK()` calls and add it to its group's table.
 
 ## 💖 Credits
 
-Created with ✨ by **sys-harmony**.
-
----
-
-*If printf-fairy helped you validate your ft_printf, don't forget to leave a ⭐ on the repo!*
+Created with ✨ by **sys-harmony**. Issues and new edge cases are welcome.

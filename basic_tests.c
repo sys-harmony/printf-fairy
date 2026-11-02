@@ -1,271 +1,146 @@
 #include "printf_fairy.h"
-#include <limits.h>
+
+/*
+ * Mandatory conversions. Each test sweeps a conversion over values picked at
+ * the edges (0, ±1, powers of the base, INT_MIN...) and compares ft_printf
+ * with printf byte for byte, return value included.
+ */
+
+static const char		*g_none[] = {""};
+static const int		g_ints[] = {0, 1, -1, 7, 9, 10, -10, 42, -42, 99, 100,
+	-100, 12345, -12345, 999999, 1000000, INT_MAX, INT_MIN, INT_MAX - 1, INT_MIN + 1};
+static const unsigned	g_uints[] = {0, 1, 7, 9, 10, 15, 16, 42, 255, 256, 4095,
+	4096, 65535, 65536, 0xabcdef, 0x7fffffff, 0x80000000, 0xdeadbeef, UINT_MAX - 1, UINT_MAX};
 
 /* ************************************************************************** */
-/*                              ft_printf %c                                  */
+/*                               conversions                                  */
 /* ************************************************************************** */
 
-static void	c_basic_test(void) {
-	CHECK("[%c]", 'A');
+static void	c_test(void) {
+	for (int c = 0; c < 256; c++)
+		CHECK("[%c]", c);
 }
 
-static void	c_null_byte_test(void) {
-	CHECK("[%c]", '\0');
+static void	c_nul_test(void) {
+	CHECK("%c", '\0');
 	CHECK("%c%c%c", 'a', '\0', 'b');
+	CHECK("%c%c", '\0', '\0');
 }
 
-static void	c_low_ascii_test(void) {
-	CHECK("[%c]", 1);
-	CHECK("[%c]", 31);
-}
+static void	s_test(void) {
+	const char	*vals[] = {"", "a", "hello", " \t\n", "\x01\x7f\x80\xff", "%d %s %%"};
 
-static void	c_high_ascii_test(void) {
-	CHECK("[%c]", 127);
-}
-
-static const t_test	g_c_tests[] = {
-	{"basic", c_basic_test},
-	{"null byte", c_null_byte_test},
-	{"low ASCII", c_low_ascii_test},
-	{"high ASCII", c_high_ascii_test},
-};
-
-/* ************************************************************************** */
-/*                              ft_printf %s                                  */
-/* ************************************************************************** */
-
-static void	s_basic_test(void) {
-	CHECK("[%s]", "hello");
-}
-
-static void	s_empty_test(void) {
-	CHECK("[%s]", "");
-}
-
-static void	s_null_test(void) {
+	SWEEP("s", g_none, g_none, g_none, vals);
 	CHECK("[%s]", (char *)NULL);
 }
 
 static void	s_long_test(void) {
-	CHECK("[%s]", "abcdefghijklmnopqrstuvwxyz0123456789");
+	char	big[3000];
+
+	memset(big, 'x', sizeof(big) - 1);
+	big[sizeof(big) - 1] = '\0';
+	CHECK("%s", big);
+	CHECK("[%s|%s]", big, big);
 }
 
-static const t_test	g_s_tests[] = {
-	{"basic", s_basic_test},
-	{"empty", s_empty_test},
-	{"NULL", s_null_test},
-	{"long string", s_long_test},
-};
+/* Top bit set: catches pointers printed through a signed long ("0x-1"). */
+static void	p_test(void) {
+	int			stack;
+	void		*heap = malloc(1);
+	void *const	vals[] = {NULL, (void *)1, (void *)0x42, (void *)0xdeadbeef,
+		(void *)-1, (void *)LONG_MIN, (void *)LONG_MAX, &stack, heap};
 
-/* ************************************************************************** */
-/*                              ft_printf %p                                  */
-/* ************************************************************************** */
-
-static void	p_null_test(void) {
-	CHECK("[%p]", (void *)NULL);
+	SWEEP("p", g_none, g_none, g_none, vals);
+	free(heap);
 }
 
-static void	p_small_test(void) {
-	CHECK("[%p]", (void *)0x42);
+static void	di_test(void) {
+	SWEEP("di", g_none, g_none, g_none, g_ints);
 }
 
-static void	p_large_test(void) {
-	CHECK("[%p]", (void *)0xdeadbeef);
-}
-
-static void	p_stack_test(void) {
-	int	x = 0;
-
-	CHECK("[%p]", (void *)&x);
-}
-
-// Top bit set: catches pointers printed through a signed long ("0x-1").
-static void	p_extremes_test(void) {
-	CHECK("[%p]", (void *)-1);
-	CHECK("[%p]", (void *)LONG_MIN);
-	CHECK("[%p]", (void *)LONG_MAX);
-}
-
-static const t_test	g_p_tests[] = {
-	{"NULL", p_null_test},
-	{"small address", p_small_test},
-	{"large address", p_large_test},
-	{"stack address", p_stack_test},
-	{"extremes (-1, LONG_MIN, LONG_MAX)", p_extremes_test},
-};
-
-/* ************************************************************************** */
-/*                            ft_printf %d / %i                               */
-/* ************************************************************************** */
-
-static void	d_zero_test(void) {
-	CHECK("[%d]", 0);
-}
-
-static void	d_positive_test(void) {
-	CHECK("[%d]", 42);
-}
-
-static void	d_negative_test(void) {
-	CHECK("[%d]", -42);
-}
-
-static void	d_int_max_test(void) {
-	CHECK("[%d]", INT_MAX);
-}
-
-static void	d_int_min_test(void) {
-	CHECK("[%d]", INT_MIN);
-}
-
-static void	i_basic_test(void) {
-	CHECK("[%i]", -42);
-	CHECK("[%i]", 0);
-}
-
-static const t_test	g_d_i_tests[] = {
-	{"d zero", d_zero_test},
-	{"d positive", d_positive_test},
-	{"d negative", d_negative_test},
-	{"d INT_MAX", d_int_max_test},
-	{"d INT_MIN", d_int_min_test},
-	{"i basic", i_basic_test},
-};
-
-/* ************************************************************************** */
-/*                              ft_printf %u                                  */
-/* ************************************************************************** */
-
-static void	u_zero_test(void) {
-	CHECK("[%u]", 0u);
-}
-
-static void	u_positive_test(void) {
-	CHECK("[%u]", 42u);
-}
-
-static void	u_uint_max_test(void) {
-	CHECK("[%u]", UINT_MAX);
-}
-
-static void	u_negative_arg_test(void) {
+static void	u_test(void) {
+	SWEEP("u", g_none, g_none, g_none, g_uints);
 	CHECK("[%u]", -1);
 	CHECK("[%u]", INT_MIN);
 }
 
-static const t_test	g_u_tests[] = {
-	{"zero", u_zero_test},
-	{"positive", u_positive_test},
-	{"UINT_MAX", u_uint_max_test},
-	{"negative arg", u_negative_arg_test},
-};
-
-/* ************************************************************************** */
-/*                            ft_printf %x / %X                               */
-/* ************************************************************************** */
-
-static void	x_zero_test(void) {
-	CHECK("[%x]", 0);
-	CHECK("[%X]", 0);
+static void	x_test(void) {
+	SWEEP("xX", g_none, g_none, g_none, g_uints);
+	CHECK("[%x %X]", -1, INT_MIN);
 }
 
-static void	x_basic_test(void) {
-	CHECK("[%x]", 255);
-	CHECK("[%X]", 255);
-}
-
-static void	x_uint_max_test(void) {
-	CHECK("[%x]", UINT_MAX);
-	CHECK("[%X]", UINT_MAX);
-}
-
-static void	x_negative_arg_test(void) {
-	CHECK("[%x]", -1);
-	CHECK("[%X]", INT_MIN);
-}
-
-static void	x_mixed_case_test(void) {
-	CHECK("%x %X", 0xabcdef, 0xabcdef);
-}
-
-static const t_test	g_x_tests[] = {
-	{"zero", x_zero_test},
-	{"basic 255", x_basic_test},
-	{"UINT_MAX", x_uint_max_test},
-	{"negative arg", x_negative_arg_test},
-	{"mixed lower/upper", x_mixed_case_test},
-};
-
-/* ************************************************************************** */
-/*                              ft_printf %%                                  */
-/* ************************************************************************** */
-
-static void	percent_basic_test(void) {
-	CHECK("[%%]");
-}
-
-static void	percent_mixed_test(void) {
-	CHECK("100%% done");
-}
-
-static void	percent_consecutive_test(void) {
+static void	percent_test(void) {
+	CHECK("%%");
+	CHECK("100%%");
 	CHECK("%%%%");
+	CHECK("%%d %%s");
+	CHECK("[%%%c%%]", 'x');
 }
 
-static const t_test	g_percent_tests[] = {
-	{"basic", percent_basic_test},
-	{"with text", percent_mixed_test},
-	{"consecutive", percent_consecutive_test},
+static const t_test	g_conversion_tests[] = {
+	{"%c, every byte from 0 to 255", c_test},
+	{"%c of '\\0' among other characters", c_nul_test},
+	{"%s: empty, spaces, high bytes, a format, NULL", s_test},
+	{"%s: 3000 characters", s_long_test},
+	{"%p: NULL, top bit set, stack, heap", p_test},
+	{"%d %i: 0, ±1, powers of 10, INT_MIN, INT_MAX", di_test},
+	{"%u: powers of 2 and 16, UINT_MAX, negative arguments", u_test},
+	{"%x %X: powers of 2 and 16, UINT_MAX, negative arguments", x_test},
+	{"%%: alone, doubled, around text", percent_test},
 };
 
 /* ************************************************************************** */
-/*                                Mix tests                                   */
+/*                                 formats                                    */
 /* ************************************************************************** */
 
-static void	mix_simple_test(void) {
-	CHECK("%s = %d", "answer", 42);
-}
-
-static void	mix_all_types_test(void) {
-	CHECK("c=%c s=%s d=%d x=%x p=%p", 'X', "hi", -1, 0xff, (void *)0x42);
-}
-
-static void	mix_no_format_test(void) {
+static void	text_test(void) {
+	CHECK("");
 	CHECK("just plain text");
-}
-
-static void	mix_only_newlines_test(void) {
 	CHECK("\n\n\n");
 }
 
-static const t_test	g_mix_tests[] = {
-	{"simple", mix_simple_test},
-	{"all types", mix_all_types_test},
-	{"no format", mix_no_format_test},
-	{"only newlines", mix_only_newlines_test},
+static void	long_text_test(void) {
+	char	fmt[5000];
+
+	memset(fmt, 'z', sizeof(fmt) - 1);
+	fmt[sizeof(fmt) - 1] = '\0';
+	CHECK(fmt);
+}
+
+static void	all_conversions_test(void) {
+	CHECK("c=%c s=%s p=%p d=%d i=%i u=%u x=%x X=%X %%", 'Z', "str", (void *)0x42,
+		-42, INT_MIN, UINT_MAX, 0xabc, 0xabc);
+	CHECK("%s%d%s%x%c", "a", 1, "b", 255, '!');
+	CHECK("%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
+}
+
+static const t_test	g_format_tests[] = {
+	{"empty format, text only, newlines", text_test},
+	{"5000 characters of text", long_text_test},
+	{"every conversion in a format, 20 in a row", all_conversions_test},
 };
 
 /* ************************************************************************** */
-/*                              robustness                                    */
+/*                               robustness                                   */
 /* ************************************************************************** */
 
 /*
- * With stdout closed, an unbuffered printf("hello world") returns -1: since
- * ft_printf writes directly (no buffer management), it must do the same.
- * Empty output is not tested: glibc returns 0 there, as nothing is written.
+ * With stdout closed, write() fails and an unbuffered printf returns -1. The
+ * subject does not mention write errors: a difference only warns.
  */
-static void	ret_broken_fd_test(void) {
+static void	closed_stdout_test(void) {
 	int	ret;
 
 	close(STDOUT_FILENO);
 	ret = ft_printf("hello world");
 	if (ret != -1)
-		test_fail("      returned %d with stdout closed, expected -1", ret);
+		warning("returned %d with stdout closed, where printf returns -1", ret);
 }
 
 /*
- * Makes the 1st, then 2nd, ... malloc fail: ft_printf may give up, but must
- * not crash. Implementations that never call malloc pass trivially.
+ * Makes the 1st, then 2nd, ... malloc fail: ft_printf may give up, but not
+ * crash. An implementation that never calls malloc passes as is.
  */
 static void	malloc_fail_test(void) {
 	char	big[10000];
@@ -281,19 +156,13 @@ static void	malloc_fail_test(void) {
 }
 
 static const t_test	g_robustness_tests[] = {
-	{"-1 when stdout is closed", ret_broken_fd_test},
-	{"no crash when malloc fails", malloc_fail_test},
+	{"stdout closed: returns -1", closed_stdout_test},
+	{"malloc failing: no crash", malloc_fail_test},
 };
 
 int	main(void) {
-	RUN_SECTION("ft_printf %c", g_c_tests);
-	RUN_SECTION("ft_printf %s", g_s_tests);
-	RUN_SECTION("ft_printf %p", g_p_tests);
-	RUN_SECTION("ft_printf %d / %i", g_d_i_tests);
-	RUN_SECTION("ft_printf %u", g_u_tests);
-	RUN_SECTION("ft_printf %x / %X", g_x_tests);
-	RUN_SECTION("ft_printf %%", g_percent_tests);
-	RUN_SECTION("ft_printf mix", g_mix_tests);
-	RUN_SECTION("ft_printf robustness", g_robustness_tests);
-	return (g_tests_failed != 0);
+	RUN_GROUP("ft_printf conversions", g_conversion_tests);
+	RUN_GROUP("ft_printf formats", g_format_tests);
+	RUN_GROUP("ft_printf robustness", g_robustness_tests);
+	return fairy_summary();
 }

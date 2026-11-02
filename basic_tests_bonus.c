@@ -1,398 +1,178 @@
 #include "printf_fairy.h"
-#include <limits.h>
 
 /* ************************************************************************** */
-/*                              flag minus (-)                                */
+/*                     flags, one classic pitfall per test                    */
 /* ************************************************************************** */
 
-static void	minus_c_test(void) {
+static void	minus_test(void) {
 	CHECK("[%-5c]", 'A');
-}
-
-static void	minus_s_test(void) {
+	CHECK("[%-5c]", '\0');
 	CHECK("[%-10s]", "hi");
+	CHECK("[%-10d] [%-10d]", 42, -42);
+	CHECK("[%-10u] [%-10x] [%-10X]", 42u, 255u, 255u);
+	CHECK("[%-20p] [%-20p]", (void *)0x42, NULL);
 }
 
-static void	minus_d_test(void) {
-	CHECK("[%-10d]", 42);
-	CHECK("[%-10d]", -42);
+static void	zero_test(void) {
+	CHECK("[%010d] [%010d] [%010i]", 42, -42, INT_MIN);
+	CHECK("[%08x] [%08X] [%08u]", 255u, 255u, 255u);
+	CHECK("[%0d] [%01d] [%02d]", 42, -42, -4);
 }
 
-static void	minus_x_test(void) {
-	CHECK("[%-10x]", 255);
-}
-
-static const t_test	g_minus_tests[] = {
-	{"with %c", minus_c_test},
-	{"with %s", minus_s_test},
-	{"with %d", minus_d_test},
-	{"with %x", minus_x_test},
-};
-
-/* ************************************************************************** */
-/*                              flag zero (0)                                 */
-/* ************************************************************************** */
-
-static void	zero_d_test(void) {
-	CHECK("[%010d]", 42);
-}
-
-static void	zero_d_negative_test(void) {
-	CHECK("[%010d]", -42);
-}
-
-static void	zero_x_test(void) {
-	CHECK("[%08x]", 255);
-}
-
-static void	zero_minus_test(void) {
+static void	zero_ignored_test(void) {
 	CHECK("[%-010d]", 42);
+	CHECK("[%010.5d] [%010.5d]", 42, -42);
+	CHECK("[%05.0d] [%05.2d] [%05.1d]", 0, 0, 42);
+	CHECK("[%08.2x] [%08.0X]", 255u, 0u);
 }
 
-static void	zero_precision_test(void) {
-	CHECK("[%010.5d]", 42);
+static void	hash_test(void) {
+	CHECK("[%#x] [%#X]", 255u, 255u);
+	CHECK("[%#x] [%#X]", 0u, 0u);
+	CHECK("[%#10x] [%#-10x] [%#010x] [%#010X]", 255u, 255u, 255u, 255u);
+	CHECK("[%#.5x] [%#.0x] [%#.0x] [%#.5X]", 255u, 0u, 1u, 255u);
+	CHECK("[%#x]", -1);
 }
 
-static void	zero_precision_zero_value_test(void) {
-	CHECK("[%05.0d]", 0);
-	CHECK("[%05.2d]", 0);
+static void	sign_test(void) {
+	CHECK("[%+d] [%+d] [%+d] [%+i]", 42, -42, 0, INT_MIN);
+	CHECK("[% d] [% d] [% d] [% i]", 42, -42, 0, INT_MAX);
+	CHECK("[%+ d] [% +d] [%+010d] [% 010d]", 42, 42, 42, 42);
+	CHECK("[%+.0d] [% .0d] [%+5.3d] [% -6d]", 0, 0, 7, 7);
 }
 
-static void	zero_precision_short_test(void) {
-	CHECK("[%05.1d]", 42);
-	CHECK("[%08.2x]", 255);
-}
-
-static const t_test	g_zero_tests[] = {
-	{"basic", zero_d_test},
-	{"with negative", zero_d_negative_test},
-	{"with %x", zero_x_test},
-	{"ignored if -", zero_minus_test},
-	{"ignored if precision", zero_precision_test},
-	{"ignored if precision (zero value)", zero_precision_zero_value_test},
-	{"ignored if precision (prec <= digits)", zero_precision_short_test},
-};
-
-/* ************************************************************************** */
-/*                              flag hash (#)                                 */
-/* ************************************************************************** */
-
-static void	hash_x_test(void) {
-	CHECK("[%#x]", 255);
-	CHECK("[%#X]", 255);
-}
-
-static void	hash_zero_test(void) {
-	CHECK("[%#x]", 0);
-	CHECK("[%#X]", 0);
-}
-
-static void	hash_width_test(void) {
-	CHECK("[%#10x]", 255);
-}
-
-static void	hash_zero_pad_test(void) {
-	CHECK("[%#010x]", 255);
-	CHECK("[%#010X]", 255);
-}
-
-static void	hash_precision_test(void) {
-	CHECK("[%#.5x]", 255);
-	CHECK("[%#.0x]", 0);
-	CHECK("[%#.5X]", 255);
-}
-
-static const t_test	g_hash_tests[] = {
-	{"basic", hash_x_test},
-	{"with zero (no prefix)", hash_zero_test},
-	{"with width", hash_width_test},
-	{"with zero pad", hash_zero_pad_test},
-	{"with precision", hash_precision_test},
-};
-
-/* ************************************************************************** */
-/*                              flag space ( )                                */
-/* ************************************************************************** */
-
-static void	space_positive_test(void) {
-	CHECK("[% d]", 42);
-}
-
-static void	space_negative_test(void) {
-	CHECK("[% d]", -42);
-}
-
-static void	space_zero_test(void) {
-	CHECK("[% d]", 0);
-}
-
-static void	space_overridden_by_plus_test(void) {
-	CHECK("[%+ d]", 42);
-	CHECK("[% +d]", 42);
-}
-
-static const t_test	g_space_tests[] = {
-	{"with positive", space_positive_test},
-	{"with negative", space_negative_test},
-	{"with zero", space_zero_test},
-	{"overridden by +", space_overridden_by_plus_test},
-};
-
-/* ************************************************************************** */
-/*                              flag plus (+)                                 */
-/* ************************************************************************** */
-
-static void	plus_positive_test(void) {
-	CHECK("[%+d]", 42);
-}
-
-static void	plus_negative_test(void) {
-	CHECK("[%+d]", -42);
-}
-
-static void	plus_zero_test(void) {
-	CHECK("[%+d]", 0);
-}
-
-static void	plus_zero_pad_test(void) {
-	CHECK("[%+010d]", 42);
-}
-
-static const t_test	g_plus_tests[] = {
-	{"with positive", plus_positive_test},
-	{"with negative", plus_negative_test},
-	{"with zero", plus_zero_test},
-	{"with zero pad", plus_zero_pad_test},
-};
-
-/* ************************************************************************** */
-/*                                  width                                     */
-/* ************************************************************************** */
-
-static void	width_basic_test(void) {
-	CHECK("[%10d]", 42);
-}
-
-static void	width_too_small_test(void) {
-	CHECK("[%2d]", 42424);
-}
-
-static void	width_zero_test(void) {
-	CHECK("[%0d]", 42);
-}
-
-static void	width_with_string_test(void) {
-	CHECK("[%10s]", "hi");
-}
-
-static void	width_huge_test(void) {
+static void	width_test(void) {
+	CHECK("[%10d] [%2d] [%1d]", 42, 42424, -1);
+	CHECK("[%10s] [%10s] [%2s]", "hi", (char *)NULL, "hello");
+	CHECK("[%5c] [%5c]", 'x', '\0');
+	CHECK("[%20p] [%20p]", (void *)0x42, NULL);
 	CHECK("[%1000d]", 42);
 	CHECK("[%-1000s]", "x");
 }
 
-static const t_test	g_width_tests[] = {
-	{"basic", width_basic_test},
-	{"too small (ignored)", width_too_small_test},
-	{"width 0", width_zero_test},
-	{"with string", width_with_string_test},
-	{"huge width padding", width_huge_test},
+static void	precision_test(void) {
+	CHECK("[%.5d] [%.5d] [%.5i] [%.40u]", 42, -42, INT_MIN, 7u);
+	CHECK("[%.0d] [%.0d] [%.d] [%.d]", 0, 42, 0, 42);
+	CHECK("[%.0u] [%.0x] [%.0X]", 0u, 0u, 0u);
+	CHECK("[%.3s] [%.0s] [%.s] [%.10s]", "hello", "hello", "hello", "hi");
+	CHECK("[%.6s] [%.10s]", (char *)NULL, (char *)NULL);
+	CHECK("[%10.5d] [%-10.5d] [%10.3s] [%-10.3s]", 42, -42, "hello", "hello");
+	CHECK("[%15.12u] [%15.12x]", -1, -1);
+}
+
+static void	combo_test(void) {
+	CHECK("[%+010.5d] [%-+10.5d] [% -10.5d]", 42, 42, -42);
+	CHECK("[%5.3s] [%+05d] [%#010x] [%-5c] [%%]", "hello", -42, 255u, 'z');
+	CHECK("[%-#12.8x] [%#-12.8X]", 0xbeefu, 0xbeefu);
+}
+
+static const t_test	g_flag_tests[] = {
+	{"-: left-justifies every conversion", minus_test},
+	{"0: pads numbers with zeros, after the sign", zero_test},
+	{"0 ignored with - or with a precision", zero_ignored_test},
+	{"#: 0x prefix, none for 0, with width and 0", hash_test},
+	{"+ and space: signs of %d %i, + wins", sign_test},
+	{"width: padding, too small, 1000 wide", width_test},
+	{"precision: digits, truncation, .0 on 0", precision_test},
+	{"flags, width and precision together", combo_test},
 };
 
 /* ************************************************************************** */
-/*                                precision                                   */
+/*          undefined combinations: glibc as reference, warnings only         */
 /* ************************************************************************** */
 
-static void	prec_d_basic_test(void) {
-	CHECK("[%.5d]", 42);
+static void	ub_zero_test(void) {
+	CHECK_UB("[%010p] [%-010p] [%010p]", (void *)0x42, (void *)0x42, NULL);
+	CHECK_UB("[%05s] [%05c]", "hi", 'a');
 }
 
-static void	prec_d_zero_test(void) {
-	CHECK("[%.0d]", 0);
-	CHECK("[%.0d]", 42);
+static void	ub_precision_test(void) {
+	CHECK_UB("[%.5p] [%.0p] [%.3c]", (void *)0x42, NULL, 'b');
+	CHECK_UB("[%.3s] [%10.2s]", (char *)NULL, (char *)NULL);
 }
 
-static void	prec_s_truncate_test(void) {
-	CHECK("[%.3s]", "hello");
-	CHECK("[%.0s]", "hello");
+static void	ub_sign_hash_test(void) {
+	CHECK_UB("[%+s] [% s] [%+c] [%#c] [%#s]", "s", "s", 'c', 'c', "s");
+	CHECK_UB("[%+u] [% x] [%#d] [%#i] [%#u]", 42u, 42u, 42, 42, 42u);
+	CHECK_UB("[%+p] [% p] [%#p]", (void *)1, (void *)1, (void *)1);
 }
 
-static void	prec_s_longer_test(void) {
-	CHECK("[%.10s]", "hi");
+static void	ub_repeat_test(void) {
+	CHECK_UB("[%+++d] [%---5d] [%  d] [%##x] [%000005d]", 42, 42, 42, 42u, 42);
+	CHECK_UB("[%5%] [%-5%] [%05%]");
 }
 
-static void	prec_x_test(void) {
-	CHECK("[%.5x]", 255);
-	CHECK("[%.0x]", 0);
-}
-
-static void	prec_no_number_test(void) {
-	CHECK("[%.d]", 42);
-	CHECK("[%.d]", 0);
-}
-
-static void	prec_width_combination_test(void) {
-	CHECK("[%10.5d]", 42);
-	CHECK("[%10.3s]", "hello");
-}
-
-static void	prec_huge_test(void) {
-	CHECK("[%.40d]", 7);
-	CHECK("[%.40u]", 7);
-}
-
-static const t_test	g_precision_tests[] = {
-	{"d basic", prec_d_basic_test},
-	{"d precision 0", prec_d_zero_test},
-	{"s truncation", prec_s_truncate_test},
-	{"s precision > len", prec_s_longer_test},
-	{"x basic", prec_x_test},
-	{"precision no number", prec_no_number_test},
-	{"width + precision", prec_width_combination_test},
-	{"huge precision (40)", prec_huge_test},
+static const t_test	g_ub_tests[] = {
+	{"flag 0 on %p, %s, %c", ub_zero_test},
+	{"precision on %p, %c, NULL %s", ub_precision_test},
+	{"+, space and # where undefined", ub_sign_hash_test},
+	{"repeated flags, flags on %%", ub_repeat_test},
 };
 
 /* ************************************************************************** */
-/*                            combinations                                    */
-/* ************************************************************************** */
-
-static void	combo_all_flags_test(void) {
-	CHECK("[%+010.5d]", 42);
-}
-
-static void	combo_minus_width_prec_s_test(void) {
-	CHECK("[%-10.3s]", "hello");
-}
-
-static void	combo_repeated_flags_test(void) {
-	CHECK("[%+++d]", 42);
-}
-
-static void	combo_mixed_test(void) {
-	CHECK("[%5.3s] [%+05d] [%#010x]", "hello", -42, 255);
-}
-
-static void	combo_neg_unsigned_test(void) {
-	CHECK("[%15.12u]", -1);
-	CHECK("[%#x]", -1);
-}
-
-static const t_test	g_combo_tests[] = {
-	{"all flags + width + precision", combo_all_flags_test},
-	{"- width precision with %s", combo_minus_width_prec_s_test},
-	{"repeated flags", combo_repeated_flags_test},
-	{"mixed format", combo_mixed_test},
-	{"negative unsigned + width/precision/hash", combo_neg_unsigned_test},
-};
-
-/* ************************************************************************** */
-/*                          flags on %p / %s                                  */
-/* ************************************************************************** */
-
-// glibc behaviour for flags the standard leaves undefined on these conversions.
-
-static void	pointer_width_test(void) {
-	CHECK("[%20p]", (void *)0x42);
-	CHECK("[%-20p]", (void *)0x42);
-}
-
-static void	pointer_zero_pad_test(void) {
-	CHECK("[%010p]", (void *)0x42);
-}
-
-static void	string_zero_flag_ignored_test(void) {
-	CHECK("[%05s]", "hi");
-}
-
-static void	string_null_width_test(void) {
-	CHECK("[%10s]", (char *)NULL);
-	CHECK("[%-10s]", (char *)NULL);
-}
-
-static const t_test	g_misc_tests[] = {
-	{"%p with width (- and right)", pointer_width_test},
-	{"%p with zero pad", pointer_zero_pad_test},
-	{"%s ignores flag 0", string_zero_flag_ignored_test},
-	{"%s NULL with width", string_null_width_test},
-};
-
-/* ************************************************************************** */
-/*                    exhaustive cartesian product (bonus)                    */
+/*                            exhaustive sweeps                               */
 /* ************************************************************************** */
 
 /*
- * Inspired by francinette's Fsoares: instead of isolated cases, sweep the full
- * flag x width x precision x value space for each conversion and compare every
- * combination against glibc. The per-conversion flag sets avoid undefined
- * behaviour (+ / space never on unsigned conversions, # only on x/X, no
- * precision on c/p), so a mismatch always means a real bug.
+ * Every flag combination x width x precision x value, for each conversion:
+ * about 22,000 formats. What the C standard defines must match glibc, the
+ * undefined combinations only warn (see defined()).
  */
 
+static const char	*g_flags[] = {"", "-", "0", "+", " ", "#", "-0", "-+", "- ",
+	"-#", "+0", " 0", "#0", "+ ", "-+0#"};
 static const char	*g_widths[] = {"", "1", "5", "10", "20"};
 static const char	*g_precs[] = {"", ".", ".0", ".1", ".2", ".5", ".10"};
-static const char	*g_no_prec[] = {""};
 
-static void	sweep_signed_test(void) {
-	const char	*flags[] = {"", "-", "0", "+", " ", "-0", "+0", " 0", "-+"};
-	const int	vals[] = {0, 1, -1, 42, -42, INT_MAX, INT_MIN, 7};
+static void	sweep_di_test(void) {
+	const int	vals[] = {0, 1, -1, 7, 42, -42, INT_MAX, INT_MIN};
 
-	SWEEP("di", flags, g_widths, g_precs, vals);
+	SWEEP("di", g_flags, g_widths, g_precs, vals);
 }
 
-static void	sweep_unsigned_test(void) {
-	const char			*flags[] = {"", "-", "0", "-0"};
-	const unsigned int	vals[] = {0, 1, 42, 4242, UINT_MAX, 2147483648u};
+static void	sweep_u_test(void) {
+	const unsigned	vals[] = {0, 1, 42, 4242, UINT_MAX, 2147483648u};
 
-	SWEEP("u", flags, g_widths, g_precs, vals);
+	SWEEP("u", g_flags, g_widths, g_precs, vals);
 }
 
-static void	sweep_hex_test(void) {
-	const char			*flags[] = {"", "-", "0", "#", "-0", "0#", "-#"};
-	const unsigned int	vals[] = {0, 1, 255, 0xabcdef, UINT_MAX, 2147483648u};
+static void	sweep_x_test(void) {
+	const unsigned	vals[] = {0, 1, 255, 0xabcdef, UINT_MAX, 2147483648u};
 
-	SWEEP("xX", flags, g_widths, g_precs, vals);
+	SWEEP("xX", g_flags, g_widths, g_precs, vals);
 }
 
-static void	sweep_char_test(void) {
-	const char	*flags[] = {"", "-"};
+static void	sweep_c_test(void) {
 	const int	vals[] = {'a', '\0', 127};
 
-	SWEEP("c", flags, g_widths, g_no_prec, vals);
+	SWEEP("c", g_flags, g_widths, g_precs, vals);
 }
 
-static void	sweep_str_test(void) {
-	const char	*flags[] = {"", "-"};
+static void	sweep_s_test(void) {
 	const char	*precs[] = {"", ".", ".0", ".3", ".10"};
 	const char	*vals[] = {"", "a", "hello", "abcdefghijklmnop"};
 
-	SWEEP("s", flags, g_widths, precs, vals);
+	SWEEP("s", g_flags, g_widths, precs, vals);
 }
 
-static void	sweep_pointer_test(void) {
-	const char	*flags[] = {"", "-"};
+static void	sweep_p_test(void) {
 	void *const	vals[] = {NULL, (void *)0x42, (void *)-1};
 
-	SWEEP("p", flags, g_widths, g_no_prec, vals);
+	SWEEP("p", g_flags, g_widths, g_precs, vals);
 }
 
 static const t_test	g_sweep_tests[] = {
-	{"signed d/i sweep", sweep_signed_test},
-	{"unsigned u sweep", sweep_unsigned_test},
-	{"hex x/X sweep", sweep_hex_test},
-	{"char c sweep", sweep_char_test},
-	{"string s sweep", sweep_str_test},
-	{"pointer p sweep", sweep_pointer_test},
+	{"%d %i: 8,400 formats", sweep_di_test},
+	{"%u: 3,150 formats", sweep_u_test},
+	{"%x %X: 6,300 formats", sweep_x_test},
+	{"%c: 1,575 formats", sweep_c_test},
+	{"%s: 1,500 formats", sweep_s_test},
+	{"%p: 1,575 formats", sweep_p_test},
 };
 
 int	main(void) {
-	RUN_SECTION("flag - (bonus)", g_minus_tests);
-	RUN_SECTION("flag 0 (bonus)", g_zero_tests);
-	RUN_SECTION("flag # (bonus)", g_hash_tests);
-	RUN_SECTION("flag space (bonus)", g_space_tests);
-	RUN_SECTION("flag + (bonus)", g_plus_tests);
-	RUN_SECTION("width (bonus)", g_width_tests);
-	RUN_SECTION("precision (bonus)", g_precision_tests);
-	RUN_SECTION("combinations (bonus)", g_combo_tests);
-	RUN_SECTION("misc flags (bonus)", g_misc_tests);
-	RUN_SECTION("exhaustive sweep (bonus)", g_sweep_tests);
-	return (g_tests_failed != 0);
+	RUN_GROUP("ft_printf flags (bonus)", g_flag_tests);
+	RUN_GROUP("ft_printf undefined combinations (bonus)", g_ub_tests);
+	RUN_GROUP("ft_printf exhaustive sweeps (bonus)", g_sweep_tests);
+	return fairy_summary();
 }
