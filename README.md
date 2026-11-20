@@ -66,7 +66,7 @@ Warnings, for ft_printf:
 - a combination the C standard leaves undefined (flag `0` on `%s`, `+` on `%u`, a precision on `%p`, `%5%`...) that differs from glibc
 - a return value other than `-1` when stdout is closed (write errors are not in the subject)
 - a README that does not look like the subject's description
-- project files that git does not track, hence not graded
+- project files that git does not track, hence not graded, or deleted but still committed, hence graded
 - `norminette` or `valgrind` missing: that check did not run
 
 ## 🧪 What is checked
@@ -74,7 +74,7 @@ Warnings, for ft_printf:
 | Step | What |
 |---|---|
 | 🔖 Version | Bonus when the Makefile has a `bonus` rule |
-| 📂 Files | a Makefile and `ft_printf.h`; project files not committed (warning) |
+| 📂 Files | a Makefile and `ft_printf.h`; project files not committed, or deleted but still committed (warning) |
 | 📖 README | there (failure), with the italic first line, *Description*, *Instructions*, *Resources*, how AI was used and the algorithm (warnings) |
 | 📝 Norm | `norminette` on every graded `.c` and `.h`, `libft/` included |
 | 📋 Prototype | the compiler checks `ft_printf.h` against `int ft_printf(const char *, ...)` |
