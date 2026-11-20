@@ -100,7 +100,7 @@ Warnings, for ft_printf:
 
 ## 📋 Requirements
 
-Linux with `bash` 4.3+, `cc`, `make`, `nm`, `valgrind`, `norminette`, `perl` and coreutils. The reference is glibc's `printf` (`(nil)` for a `NULL` `%p`), as on 42's machines.
+Linux with `bash` 4.4+, `cc`, `make`, `nm`, `valgrind`, `norminette`, `perl` and coreutils. The reference is glibc's `printf` (`(nil)` for a `NULL` `%p`), as on 42's machines.
 
 ## 📁 Structure
 
