@@ -53,7 +53,8 @@ The exit status is `0` when everything passed (warnings included), `1` otherwise
 ╔════════════════════════════════════════════╗
 ║            OH NO... YOU FAILED!            ║
 ╚════════════════════════════════════════════╝
-   ✘ Tests · 2/49 tests failed · 1.37s
+
+✘ Tests · 2/49 tests failed · 1.37s
 ```
 
 Only what did not pass is listed, each time with its reason: the format, the bytes expected and the bytes written (non-printable ones as `\xHH`, long outputs cut around the first difference), a crash signal, a timeout, or the Valgrind report.
