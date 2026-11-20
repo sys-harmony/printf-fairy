@@ -79,7 +79,7 @@ Warnings, for ft_printf:
 | 📖 README | there (failure), with the italic first line, *Description*, *Instructions*, *Resources*, how AI was used and the algorithm (warnings) |
 | 📝 Norm | `norminette` on every graded `.c` and `.h`, `libft/` included |
 | 📋 Prototype | the compiler checks `ft_printf.h` against `int ft_printf(const char *, ...)` |
-| 🔧 Makefile | `$(NAME)`, `all`, `clean`, `fclean`, `re`; `cc -Wall -Wextra -Werror` on every compilation `make -n` shows, sub-makes included; `ar`, no `libtool`; no wildcard |
+| 🔧 Makefile | `$(NAME)`, `all`, `clean`, `fclean`, `re`; `cc -Wall -Wextra -Werror` on every compilation `make -n` shows, sub-makes included; `ar`, no `libtool`; no wildcard; a `libft/` folder has its own Makefile, which the project's one calls (`make -C libft`) |
 | 📦 Build | a build from scratch, then `make` again must not relink; same for `make bonus` |
 | 🔍 External functions | in `libftprintf.a` itself: `malloc`, `free`, `write` only. `memset`, `memcpy` and `__stack_chk_fail` the compiler emits on its own are allowed, unless written in the sources |
 | 🧪 Tests | below, against the mandatory build, then everything again against the bonus build |
