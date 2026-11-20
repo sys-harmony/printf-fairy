@@ -47,6 +47,7 @@ The exit status is `0` when everything passed (warnings included), `1` otherwise
      ↳ format   "[%p]"
        expected "[0xffffffffffffffff]"  ret 20
        got      "[0x-1]"  ret 6
+
 🧪 Bonus tests ......................... Done
 🧹 Cleanup .............................. Done
 
