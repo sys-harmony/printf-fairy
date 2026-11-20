@@ -65,6 +65,7 @@ Warnings, for ft_printf:
 
 - a combination the C standard leaves undefined (flag `0` on `%s`, `+` on `%u`, a precision on `%p`, `%5%`...) that differs from glibc
 - a return value other than `-1` when stdout is closed (write errors are not in the subject)
+- what evaluators often try although it is undefined: `ft_printf(NULL)` not returning `-1` or crashing, a format ending in `%` read past its end, an unknown conversion (`%k`) crashing
 - a README that does not look like the subject's description
 - project files that git does not track, hence not graded, or deleted but still committed, hence graded
 - `norminette` or `valgrind` missing: that check did not run
@@ -86,6 +87,8 @@ Warnings, for ft_printf:
 **Mandatory conversions:** `%c` for every byte from 0 to 255; `%s` with empty, whitespace, high bytes, a format inside, `NULL`, 3000 characters; `%p` with `NULL`, the top bit set, stack and heap addresses; `%d %i %u %x %X` swept over 0, ±1, powers of 10 and 16, `INT_MIN`, `UINT_MAX`, negative arguments; `%%`. Then formats: empty, text only, 5000 characters, every conversion at once, 20 in a row.
 
 **Robustness:** each `malloc` failing in turn (no crash allowed), stdout closed (warning).
+
+**Outside the subject (warnings):** `ft_printf(NULL)`, `"abc%"` and `"[%k]"`. These formats sit at the very end of a page whose next page is unreadable, so reading past their `'\0'` crashes instead of going unnoticed.
 
 **Bonus:** one test per classic pitfall (`0` ignored with `-` or a precision, `#` with 0, `+` beats space, `.0` on 0, `%10s` on `NULL`...), the undefined combinations (warnings), then **exhaustive sweeps**: every combination of 15 flag sets × 5 widths × 7 precisions × values, for each conversion. `defined()` sorts them: what the standard defines must match glibc, the rest only warns.
 

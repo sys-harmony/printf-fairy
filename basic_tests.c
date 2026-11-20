@@ -157,9 +157,57 @@ static const t_test	g_robustness_tests[] = {
 	{"malloc failing: no crash", malloc_fail_test},
 };
 
+/* ************************************************************************** */
+/*                           outside the subject                              */
+/* ************************************************************************** */
+
+/*
+ * Undefined in C, yet often tried in evaluation: a crash, a hang or a return
+ * value other than glibc's only warns (the group runs lenient, last).
+ */
+
+/* fmt copied to the very end of a page, before an unreadable one: reading
+ * past its '\0' crashes instead of going unnoticed. */
+static const char	*at_page_end(const char *fmt) {
+	long	page = sysconf(_SC_PAGESIZE);
+	size_t	len = strlen(fmt) + 1;
+	char	*p = mmap(NULL, 2 * page, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+	if (p == MAP_FAILED || mprotect(p + page, page, PROT_NONE) < 0)
+		die("printf-fairy: mmap");
+	return memcpy(p + page - len, fmt, len);
+}
+
+static void	null_format_test(void) {
+	int	ret;
+
+	silence_stdout();
+	ret = ft_printf(NULL);
+	if (ret != -1)
+		warning("returned %d, where printf returns -1", ret);
+}
+
+static void	lone_percent_test(void) {
+	silence_stdout();
+	ft_printf(at_page_end("abc%"));
+}
+
+static void	unknown_conversion_test(void) {
+	silence_stdout();
+	ft_printf(at_page_end("[%k]"));
+}
+
+static const t_test	g_outside_tests[] = {
+	{"ft_printf(NULL): -1 like printf", null_format_test},
+	{"\"abc%\": nothing read past the format", lone_percent_test},
+	{"\"[%k]\": unknown conversion, no crash", unknown_conversion_test},
+};
+
 int	main(void) {
 	RUN_GROUP("ft_printf conversions", g_conversion_tests);
 	RUN_GROUP("ft_printf formats", g_format_tests);
 	RUN_GROUP("ft_printf robustness", g_robustness_tests);
+	g_lenient = 1;
+	RUN_GROUP("ft_printf outside the subject (warnings)", g_outside_tests);
 	return fairy_summary();
 }

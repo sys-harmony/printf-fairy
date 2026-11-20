@@ -12,6 +12,7 @@
 # include <stdlib.h>
 # include <string.h>
 # include <unistd.h>
+# include <sys/mman.h>
 # include <sys/resource.h>
 # include <sys/wait.h>
 
@@ -55,6 +56,7 @@ typedef struct s_capture
 extern int	g_malloc_wrap_enabled;
 extern int	g_malloc_count;
 extern int	g_malloc_fail_at;
+extern int	g_lenient;
 
 // =============================
 // 🪄 Macro(s)
