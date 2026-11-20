@@ -93,7 +93,7 @@ Warnings, for ft_printf:
 
 ## 🔍 How it works
 
-- `CHECK(fmt, ...)` runs `ft_printf`, then `printf`, with the same arguments, captures what each writes to stdout through a pipe and compares the raw bytes, so a `'\0'` cannot end the comparison early, and the return values.
+- `CHECK(fmt, ...)` runs `ft_printf`, then `printf`, with the same arguments, captures what each writes to stdout in a temp file and compares the raw bytes, so a `'\0'` cannot end the comparison early, and the return values.
 - Every test runs in its own process with a timeout: a crash or an infinite loop fails that test only, and the remaining timeouts shrink to 1 second.
 - The mandatory tests run in the background while the bonus builds; norminette starts at once. Every core of the machine is used.
 - `-Wl,--wrap=malloc` routes the library's `malloc` through the tester, which can make the n-th one fail.
