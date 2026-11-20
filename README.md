@@ -101,6 +101,7 @@ Warnings, for ft_printf:
 - Every test runs in its own process with a timeout: a crash or an infinite loop fails that test only, and the remaining timeouts shrink to 1 second.
 - The mandatory tests run in the background while the bonus builds; norminette starts at once. Every core of the machine is used.
 - `-Wl,--wrap=malloc` routes the library's `malloc` through the tester, which can make the n-th one fail.
+- The library is built again with `-g` in a copy of the project (`make CC="cc -g"`, libft sub-make included), so that Valgrind reports point to your lines; a Makefile that ignores `CC` just leaves them without.
 
 ## 📋 Requirements
 
