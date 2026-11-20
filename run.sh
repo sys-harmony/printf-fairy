@@ -355,6 +355,16 @@ else
 fi
 grep -qE '(^|[;&|/[:space:]])libtool\s' <<< "$CMDS" && issues+=("libtool is forbidden")
 grep -qE '(^|[;&|/[:space:]])ar\s' <<< "$CMDS" || issues+=("$NAME not created with ar")
+# A libft/ folder holds the sources and the Makefile of the libft, which the
+# Makefile of the project must call (a folder it never mentions is not used)
+if [[ -n $(find libft -name '*.c' -print -quit 2> /dev/null) ]]; then
+    if [[ ! -f libft/Makefile ]]; then
+        issues+=("libft/ has no Makefile: the subject asks for its associated Makefile")
+    elif grep -vE '^\s*#' Makefile | grep -qiE 'libft([^p]|$)' \
+        && ! grep -qE 'Entering directory .*/libft|(-C|cd)[[:space:]]+\.?/?libft' <<< "$CMDS"; then
+        issues+=("libft/ is not built through its own Makefile: call it with make -C libft")
+    fi
+fi
 verdict "${issues[@]}"
 
 # build <label> [goal]: a build from scratch (in parallel; sequential if that
