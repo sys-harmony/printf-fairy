@@ -62,7 +62,7 @@ Only what did not pass is listed, each time with its reason: the format, the byt
 
 ## ⚖️ Failures and warnings
 
-A **failure** is a bug or a clear subject violation. A **warning** is something debatable: worth a look, maybe a question from your evaluator, never a failure. A working ft_printf passes.
+A **failure** is a bug or a clear subject violation. A **warning** is something debatable: worth a look, maybe a question from your evaluator, never a failure. A working ft_printf passes. Under the green or red verdict, a yellow line says so when there are warnings above, a failed run included.
 
 Warnings, for ft_printf:
 
