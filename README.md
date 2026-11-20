@@ -69,7 +69,7 @@ Warnings, for ft_printf:
 - what evaluators often try although it is undefined: `ft_printf(NULL)` not returning `-1` or crashing, a format ending in `%` read past its end, an unknown conversion (`%k`) crashing
 - a README that does not look like the subject's description
 - project files that git does not track, hence not graded, or deleted but still committed, hence graded
-- outside git, a `.c` defining `main()` (a local test): left out of the checks
+- outside git, a `.c` with an active `main()` that the build does not use (a local test): left out of the checks, and named; a `main()` in a comment does not count, one left in a built source stays graded
 - `norminette` or `valgrind` missing: that check did not run
 
 ## 🧪 What is checked
@@ -77,7 +77,7 @@ Warnings, for ft_printf:
 | Step | What |
 |---|---|
 | 🔖 Version | Bonus when the Makefile has a `bonus` rule |
-| 📂 Files | a Makefile and `ft_printf.h`; project files not committed, or deleted but still committed; outside git, a `.c` defining `main()` is left out (warning) |
+| 📂 Files | a Makefile and `ft_printf.h`; project files not committed, or deleted but still committed; outside git, a `.c` with an active `main()` that the Makefile does not name is left out (warning) |
 | 📖 README | there (failure), with the italic first line, *Description*, *Instructions*, *Resources*, how AI was used and the algorithm (warnings) |
 | 📝 Norm | `norminette` on every graded `.c` and `.h`, `libft/` included |
 | 📋 Prototype | the compiler checks `ft_printf.h` against `int ft_printf(const char *, ...)` |
