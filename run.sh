@@ -272,6 +272,53 @@ NAME=libftprintf.a
 VG_LEAKS=all            # no static state in ft_printf: any memory left is a leak
 clean_project() { make fclean > /dev/null 2>&1; }
 
+# ---- clean rules: identical in libft-fairy and printf-fairy ------------------
+# leftovers: the objects and libraries a build leaves in the project, one per
+# line; few: the first four, and how many there are
+leftovers() {
+    find . \( -path ./.git -o -path "./$TESTER" \) -prune -o -type f \( -name '*.o' -o -name '*.a' \) -print \
+        | sed 's|^\./||' | sort
+}
+few() { awk 'NR <= 4 {printf "%s%s", sep, $0; sep = " "} END {if (NR > 4) printf " ... (%d in all)", NR}'; }
+
+# rules_job: build, make clean, make re, make fclean, in a copy of the project,
+# so that it runs beside the other steps. make re rebuilds everything, which
+# fclean then has to remove. One line per problem: "fail: ..." or "warn: ...".
+rules_job() {
+    local dir=$TMP/rules left before
+    mkdir "$dir" && tar --exclude=.git --exclude="$TESTER" -cf - . | tar -xf - -C "$dir" && cd "$dir" || return 1
+    make fclean > /dev/null 2>&1
+    make -j"$JOBS" > /dev/null 2>&1 || make > /dev/null 2>&1
+    make clean > /dev/null 2>&1 || echo "fail: make clean fails"
+    left=$(leftovers | grep '\.o$' | few)
+    [[ -z $left ]] || echo "fail: make clean leaves objects: $left"
+    [[ -f $NAME ]] || echo "warn: make clean removes $NAME: only the objects should go"
+    before=$(stat -c %y "$NAME" 2> /dev/null)
+    if ! make re > /dev/null 2>&1; then echo "fail: make re fails"
+    elif [[ ! -f $NAME || $(stat -c %y "$NAME") == "$before" ]]; then echo "fail: make re does not rebuild $NAME"; fi
+    make fclean > /dev/null 2>&1 || echo "fail: make fclean fails"
+    left=$(leftovers | few)
+    [[ -z $left ]] || echo "fail: make fclean leaves: $left"
+}
+
+# check_clean_rules: the verdict of rules_job, started with `job rules rules_job`
+check_clean_rules() {
+    local issues=() notes=() line
+    step 🧼 "Clean rules"
+    await rules
+    [[ $(rc rules) -eq 0 ]] || notes+=("could not copy the project to try the rules")
+    while IFS= read -r line; do
+        case $line in
+            fail:*) issues+=("${line#fail: }") ;;
+            warn:*) notes+=("${line#warn: }") ;;
+        esac
+    done < "$TMP/rules.log"
+    if [[ ${#issues[@]} -gt 0 ]]; then verdict "${issues[@]}"
+    elif [[ ${#notes[@]} -gt 0 ]]; then warn
+    else ok; fi
+    for line in "${notes[@]}"; do say "$line"; done
+}
+
 echo; box "$PINK" "PRINTF-FAIRY" 🧚; echo
 norm_start
 
@@ -312,6 +359,7 @@ fi
 # Rules and flags as make really runs them (make -n), variables expanded
 step 🔧 Makefile
 [[ -f Makefile ]] || { fail; say "no Makefile"; exit 1; }
+job rules rules_job
 rule() { grep -qE "^([^#:=]+[[:space:]])?($1)([[:space:]][^#:=]*)?[[:space:]]*:([^=]|$)" Makefile; }
 issues=()
 rule '\$[({]NAME[)}]|libftprintf\.a' || issues+=("no \$(NAME) rule")
@@ -384,6 +432,7 @@ build_tests() {
 # The runs of a part start as soon as it is built, in the background: the
 # mandatory tests run while the bonus builds.
 build "Build"
+check_clean_rules
 externals "External functions"
 build_tests "Test build" m_ basic_tests leak_tests
 queue main m_basic tests "basic_tests" "$TMP/m_basic_tests"
