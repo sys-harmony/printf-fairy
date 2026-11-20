@@ -30,6 +30,7 @@ The exit status is `0` when everything passed (warnings included), `1` otherwise
 📋 Prototype ............................ Done
 🔧 Makefile ............................. Done
 📦 Build ................................ Done
+🧼 Clean rules .......................... Done
 🔍 External functions ................... Done
 🔨 Test build ........................... Done
 📦 Bonus build .......................... Done
@@ -82,6 +83,7 @@ Warnings, for ft_printf:
 | 📋 Prototype | the compiler checks `ft_printf.h` against `int ft_printf(const char *, ...)` |
 | 🔧 Makefile | `$(NAME)`, `all`, `clean`, `fclean`, `re`; `cc -Wall -Wextra -Werror` on every compilation `make -n` shows, sub-makes included; `ar`, no `libtool`; no wildcard; a `libft/` folder has its own Makefile, which the project's one calls (`make -C libft`) |
 | 📦 Build | a build from scratch, then `make` again must not relink; same for `make bonus` |
+| 🧼 Clean rules | in a copy of the project: `make clean` removes every object (a warning if it removes `libftprintf.a` too), `make re` rebuilds the library, `make fclean` leaves no object and no library, `libft/` included |
 | 🔍 External functions | in `libftprintf.a` itself: `malloc`, `free`, `write` only. `memset`, `memcpy` and `__stack_chk_fail` the compiler emits on its own are allowed, unless written in the sources |
 | 🧪 Tests | below, against the mandatory build, then everything again against the bonus build |
 
@@ -99,7 +101,7 @@ Warnings, for ft_printf:
 
 - `CHECK(fmt, ...)` runs `ft_printf`, then `printf`, with the same arguments, captures what each writes to stdout in a temp file and compares the raw bytes, so a `'\0'` cannot end the comparison early, and the return values.
 - Every test runs in its own process with a timeout: a crash or an infinite loop fails that test only, and the remaining timeouts shrink to 1 second.
-- The mandatory tests run in the background while the bonus builds; norminette starts at once. Every core of the machine is used.
+- The mandatory tests run in the background while the bonus builds; norminette starts at once. Every core of the machine is used. The clean rules are tried in a copy of the project, beside the other steps.
 - `-Wl,--wrap=malloc` routes the library's `malloc` through the tester, which can make the n-th one fail.
 - The library is built again with `-g` in a copy of the project (`make CC="cc -g"`, libft sub-make included), so that Valgrind reports point to your lines; a Makefile that ignores `CC` just leaves them without.
 
