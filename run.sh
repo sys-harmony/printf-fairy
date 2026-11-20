@@ -365,14 +365,34 @@ externals() {
     verdict "${found[@]}"
 }
 
-# build_tests <label> <tag> <tests...>: links each test file with the library
+# debug_copy <name>: a copy of the project in $TMP/<name>, without the objects
+# and libraries it may hold: made before the build, which removes them
+debug_copy() {
+    mkdir "$TMP/$1" && tar --exclude=.git --exclude="$TESTER" --exclude='*.o' --exclude='*.a' -cf - . \
+        | tar -xf - -C "$TMP/$1"
+}
+
+# debug_lib <name> [goal]: the library built with -g in that copy, so that
+# Valgrind reports point to the lines of its sources. CC="cc -g" reaches every
+# $(CC), those of a libft sub-make too; a Makefile that ignores it just stays
+# without lines.
+debug_lib() {
+    make -C "$TMP/$1" -j"$JOBS" CC="cc -g" ${2:-} > /dev/null 2>&1 \
+        || make -C "$TMP/$1" CC="cc -g" ${2:-} > /dev/null 2>&1
+    [[ -f $TMP/$1/$NAME ]]
+}
+
+# build_tests <label> <tag> <debug build> <tests...>: links each test file with
+# the library, the one built with -g if that worked, else the project's own
 build_tests() {
-    local label=$1 tag=$2 t errors=""
-    shift 2
+    local label=$1 tag=$2 dbg=$3 t errors="" lib=.
+    shift 3
     step 🔨 "$label"
+    await "$dbg"
+    [[ $(rc "$dbg") -eq 0 ]] && lib=$TMP/$dbg
     for t in "$@"; do
         job "cc_$tag$t" cc -g -Wall -Wextra -Wno-format -DVERBOSE=$VERBOSE "$TESTER/$t.c" "$TESTER/utils.c" \
-            -o "$TMP/$tag$t" -no-pie -L. -lftprintf -Wl,--wrap=malloc
+            -o "$TMP/$tag$t" -no-pie -L"$lib" -lftprintf -Wl,--wrap=malloc
     done
     for t in "$@"; do
         await "cc_$tag$t"
@@ -381,11 +401,15 @@ build_tests() {
     if [[ -z $errors ]]; then ok; else fail; printf '%s' "$errors" | quote; exit 1; fi
 }
 
+# The -g libraries are built in copies, in the background, beside the build
+debug_copy debug; job debug debug_lib debug
+if [[ $BONUS -eq 1 ]]; then debug_copy debug_bonus; job debug_bonus debug_lib debug_bonus bonus; fi
+
 # The runs of a part start as soon as it is built, in the background: the
 # mandatory tests run while the bonus builds.
 build "Build"
 externals "External functions"
-build_tests "Test build" m_ basic_tests leak_tests
+build_tests "Test build" m_ debug basic_tests leak_tests
 queue main m_basic tests "basic_tests" "$TMP/m_basic_tests"
 queue main m_leak memcheck "leak_tests" "$TMP/m_leak_tests"
 
@@ -393,7 +417,7 @@ if [[ $BONUS -eq 1 ]]; then
     # The mandatory tests run again: a bonus often rewrites every conversion
     build "Bonus build" bonus
     externals "Bonus external functions"
-    build_tests "Bonus test build" b_ basic_tests basic_tests_bonus leak_tests leak_tests_bonus
+    build_tests "Bonus test build" b_ debug_bonus basic_tests basic_tests_bonus leak_tests leak_tests_bonus
     queue bonus b_basic tests "basic_tests (bonus build)" "$TMP/b_basic_tests"
     queue bonus b_basic_bonus tests "basic_tests_bonus" "$TMP/b_basic_tests_bonus"
     queue bonus b_leak memcheck "leak_tests (bonus build)" "$TMP/b_leak_tests"
